@@ -1,0 +1,1112 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>The Australian Dream: Priced Out: A Data Story</title>
+<style>
+/* ═══════════════════════════════════════════
+   DESIGN TOKENS
+═══════════════════════════════════════════ */
+:root {
+  --ink:       #1a1a2a;
+  --ink-light: #4a4a6a;
+  --paper:     #faf9f6;
+  --paper2:    #f0ede6;
+  --accent:    #c0392b;
+  --accent2:   #e67e22;
+  --gold:      #d4a843;
+  --teal:      #16a085;
+  --sky:       #2980b9;
+  --border:    rgba(26,26,42,0.10);
+  --serif:     'Georgia', 'Times New Roman', serif;
+  --sans:      'Helvetica Neue', Arial, sans-serif;
+}
+
+/* ═══════════════════════════════════════════
+   RESET & BASE
+═══════════════════════════════════════════ */
+*, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
+html { scroll-behavior: smooth; }
+body {
+  background: var(--paper);
+  color: var(--ink);
+  font-family: var(--sans);
+  font-size: 17px;
+  line-height: 1.7;
+  -webkit-font-smoothing: antialiased;
+}
+img { max-width: 100%; display: block; }
+a { color: var(--accent); text-decoration: none; }
+a:hover { text-decoration: underline; }
+
+/* ═══════════════════════════════════════════
+   PLACEHOLDER SYSTEM
+═══════════════════════════════════════════ */
+.placeholder {
+  background: repeating-linear-gradient(
+    45deg,
+    rgba(200,150,50,0.06),
+    rgba(200,150,50,0.06) 10px,
+    rgba(200,150,50,0.03) 10px,
+    rgba(200,150,50,0.03) 20px
+  );
+  border: 2px dashed rgba(200,150,50,0.5);
+  border-radius: 8px;
+  position: relative;
+}
+.placeholder-label {
+  position: absolute;
+  top: 12px; left: 12px;
+  background: rgba(212,168,67,0.9);
+  color: #000;
+  font-family: var(--sans);
+  font-size: 11px;
+  font-weight: 700;
+  letter-spacing: 0.07em;
+  text-transform: uppercase;
+  padding: 4px 10px;
+  border-radius: 4px;
+  z-index: 10;
+}
+.placeholder-hint {
+  text-align: center;
+  padding: 40px 24px;
+  color: rgba(150,110,40,0.7);
+  font-size: 14px;
+  font-family: var(--sans);
+}
+.placeholder-hint .icon { font-size: 32px; margin-bottom: 10px; display: block; }
+.placeholder-hint strong { display: block; font-size: 16px; color: rgba(130,90,30,0.9); margin-bottom: 6px; }
+
+/* ═══════════════════════════════════════════
+   NAVIGATION
+═══════════════════════════════════════════ */
+nav {
+  position: sticky; top: 0; z-index: 100;
+  background: rgba(26,26,42,0.97);
+  backdrop-filter: blur(12px);
+  -webkit-backdrop-filter: blur(12px);
+  border-bottom: 1px solid rgba(255,255,255,0.06);
+}
+.nav-inner {
+  max-width: 1100px; margin: 0 auto;
+  display: flex; align-items: center; justify-content: space-between;
+  padding: 0 24px; height: 52px;
+}
+.nav-brand {
+  display: flex; align-items: center; gap: 10px;
+  color: #fff; font-size: 13px; font-weight: 600; letter-spacing: 0.05em;
+}
+.nav-brand .dot {
+  width: 8px; height: 8px; border-radius: 50%;
+  background: var(--accent2); flex-shrink: 0;
+}
+.nav-links { display: flex; align-items: center; gap: 4px; }
+.nav-links a {
+  color: rgba(255,255,255,0.55); font-size: 13px; font-weight: 500;
+  padding: 6px 12px; border-radius: 6px; transition: all 0.2s; white-space: nowrap;
+}
+.nav-links a:hover { color: #fff; background: rgba(255,255,255,0.08); text-decoration: none; }
+.nav-links a.active { color: #fff; }
+.nav-source {
+  color: rgba(255,255,255,0.35); font-size: 11px;
+  display: flex; align-items: center; gap: 6px;
+}
+.nav-source span { color: rgba(255,255,255,0.55); }
+
+/* ═══════════════════════════════════════════
+   HERO
+═══════════════════════════════════════════ */
+.hero {
+  background: var(--ink);
+  min-height: 100vh;
+  display: flex; flex-direction: column; justify-content: flex-end;
+  padding: 80px 0 0;
+  position: relative; overflow: hidden;
+}
+.hero-bg {
+  position: absolute; inset: 0;
+  background:
+    radial-gradient(ellipse 70% 60% at 80% 50%, rgba(192,57,43,0.15) 0%, transparent 60%),
+    radial-gradient(ellipse 50% 40% at 20% 80%, rgba(230,126,34,0.10) 0%, transparent 60%);
+}
+/* Decorative house silhouettes */
+.hero-skyline {
+  position: absolute; bottom: 0; left: 0; right: 0;
+  height: 220px; display: flex; align-items: flex-end;
+  justify-content: center; gap: 0; opacity: 0.07;
+  pointer-events: none;
+}
+.house-block {
+  background: #fff;
+  position: relative;
+}
+.house-block::before {
+  content: '';
+  position: absolute; top: 0; left: 50%; transform: translate(-50%, -100%);
+  border-left: var(--w, 20px) solid transparent;
+  border-right: var(--w, 20px) solid transparent;
+  border-bottom: var(--h, 20px) solid #fff;
+}
+
+.hero-content {
+  position: relative; z-index: 1;
+  max-width: 1100px; margin: 0 auto; padding: 0 24px 64px;
+}
+.hero-eyebrow {
+  display: inline-flex; align-items: center; gap: 8px;
+  background: rgba(192,57,43,0.2); border: 1px solid rgba(192,57,43,0.35);
+  color: #ff8a80; font-size: 12px; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; padding: 6px 14px; border-radius: 100px;
+  margin-bottom: 28px;
+}
+.hero-eyebrow .pulse {
+  width: 6px; height: 6px; border-radius: 50%; background: #ff8a80;
+  animation: pulse 2s infinite;
+}
+@keyframes pulse { 0%,100%{opacity:1;transform:scale(1)} 50%{opacity:0.4;transform:scale(1.4)} }
+
+.hero h1 {
+  font-family: var(--serif);
+  font-size: clamp(42px, 7vw, 90px);
+  font-weight: 700;
+  color: #fff;
+  line-height: 1.05;
+  letter-spacing: -0.02em;
+  margin-bottom: 8px;
+}
+.hero h1 em {
+  font-style: normal;
+  color: transparent;
+  -webkit-text-stroke: 1.5px rgba(255,255,255,0.4);
+}
+.hero-deck {
+  font-size: clamp(16px, 2vw, 20px);
+  color: rgba(255,255,255,0.55);
+  max-width: 600px; margin: 20px 0 40px;
+  line-height: 1.6;
+}
+
+/* Hero stat bar */
+.hero-stats {
+  display: flex; gap: 2px; flex-wrap: wrap; margin-bottom: 0;
+}
+.hero-stat {
+  flex: 1; min-width: 180px;
+  background: rgba(255,255,255,0.04);
+  border-top: 3px solid var(--c, rgba(255,255,255,0.2));
+  padding: 20px 24px;
+  position: relative; overflow: hidden;
+  cursor: default; transition: background 0.2s;
+}
+.hero-stat:hover { background: rgba(255,255,255,0.07); }
+.hero-stat .stat-value {
+  font-family: var(--serif);
+  font-size: clamp(30px, 4vw, 48px);
+  font-weight: 700;
+  color: #fff;
+  line-height: 1;
+  margin-bottom: 6px;
+}
+.hero-stat .stat-value.placeholder-stat {
+  color: rgba(255,255,255,0.2);
+  font-style: italic;
+  font-size: 22px;
+}
+.hero-stat .stat-label { font-size: 13px; color: rgba(255,255,255,0.45); line-height: 1.4; }
+.hero-stat .stat-source { font-size: 10px; color: rgba(255,255,255,0.25); margin-top: 6px; }
+.hero-stat[data-color="red"]   { --c: var(--accent); }
+.hero-stat[data-color="amber"] { --c: var(--accent2); }
+.hero-stat[data-color="gold"]  { --c: var(--gold); }
+.hero-stat[data-color="teal"]  { --c: var(--teal); }
+
+/* Scroll cue */
+.scroll-cue {
+  position: absolute; bottom: 280px; right: 40px;
+  display: flex; flex-direction: column; align-items: center; gap: 8px;
+  color: rgba(255,255,255,0.2); font-size: 11px; letter-spacing: 0.1em; text-transform: uppercase;
+  animation: bobDown 2s ease-in-out infinite;
+}
+@keyframes bobDown { 0%,100%{transform:translateY(0)} 50%{transform:translateY(8px)} }
+.scroll-arrow { font-size: 20px; }
+
+/* ═══════════════════════════════════════════
+   LAYOUT UTILITIES
+═══════════════════════════════════════════ */
+.section { padding: 80px 0; }
+.section-alt { background: var(--paper2); }
+.section-dark { background: var(--ink); color: #fff; }
+.section-dark .section-label { color: rgba(255,255,255,0.4); }
+.section-dark h2 { color: #fff; }
+.section-dark p { color: rgba(255,255,255,0.7); }
+.section-dark .chart-caption { color: rgba(255,255,255,0.45); }
+
+.inner { max-width: 1100px; margin: 0 auto; padding: 0 24px; }
+.inner-narrow { max-width: 720px; margin: 0 auto; padding: 0 24px; }
+
+/* ═══════════════════════════════════════════
+   SECTION LABELS & HEADINGS
+═══════════════════════════════════════════ */
+.section-label {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.12em;
+  text-transform: uppercase; color: var(--accent);
+  margin-bottom: 12px; display: flex; align-items: center; gap: 8px;
+}
+.section-label::after {
+  content: ''; flex: 1; max-width: 40px;
+  height: 2px; background: currentColor; opacity: 0.4;
+}
+h2 {
+  font-family: var(--serif);
+  font-size: clamp(28px, 4vw, 42px);
+  font-weight: 700; line-height: 1.2;
+  letter-spacing: -0.02em;
+  color: var(--ink); margin-bottom: 20px;
+}
+h3 {
+  font-family: var(--serif);
+  font-size: clamp(20px, 3vw, 28px);
+  font-weight: 700; line-height: 1.3;
+  color: var(--ink); margin-bottom: 14px;
+}
+.lead {
+  font-size: clamp(16px, 2vw, 20px);
+  color: var(--ink-light); line-height: 1.7;
+  margin-bottom: 24px;
+}
+p { margin-bottom: 16px; color: var(--ink-light); }
+p:last-child { margin-bottom: 0; }
+
+/* ═══════════════════════════════════════════
+   CONTEXT SECTION
+═══════════════════════════════════════════ */
+.context-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 60px;
+  align-items: start;
+  margin-top: 48px;
+}
+@media(max-width:700px){ .context-grid { grid-template-columns: 1fr; gap: 32px; } }
+
+.context-text p { font-size: 17px; line-height: 1.8; }
+
+.fact-card {
+  background: var(--ink);
+  border-radius: 16px; padding: 32px;
+  color: #fff; position: relative; overflow: hidden;
+}
+.fact-card::before {
+  content: ''; position: absolute;
+  top: -40px; right: -40px;
+  width: 150px; height: 150px;
+  border-radius: 50%;
+  background: rgba(192,57,43,0.15);
+}
+.fact-card .fact-number {
+  font-family: var(--serif);
+  font-size: 60px; font-weight: 700;
+  color: var(--accent2); line-height: 1;
+  margin-bottom: 10px;
+}
+.fact-card .fact-number.ph { font-size: 28px; color: rgba(255,255,255,0.2); font-style: italic; }
+.fact-card .fact-text { font-size: 17px; line-height: 1.6; color: rgba(255,255,255,0.75); }
+.fact-card .fact-source { font-size: 11px; color: rgba(255,255,255,0.3); margin-top: 16px; }
+
+/* ═══════════════════════════════════════════
+   CHART CONTAINERS
+═══════════════════════════════════════════ */
+.chart-wrapper {
+  margin: 40px 0;
+  position: relative;
+}
+.chart-headline {
+  font-family: var(--serif);
+  font-size: 20px; font-weight: 700;
+  color: var(--ink); margin-bottom: 6px;
+  line-height: 1.3;
+}
+.chart-headline.ph { color: rgba(26,26,42,0.25); font-style: italic; }
+.chart-deck {
+  font-size: 14px; color: var(--ink-light);
+  margin-bottom: 16px; line-height: 1.6; max-width: 640px;
+}
+.chart-deck.ph { color: rgba(26,26,42,0.25); font-style: italic; }
+.chart-frame {
+  width: 100%; border-radius: 12px;
+  overflow: hidden; position: relative;
+}
+.chart-frame iframe {
+  width: 100%; border: none; display: block;
+  border-radius: 12px;
+}
+.chart-caption {
+  font-size: 12px; color: var(--ink-light);
+  margin-top: 10px; display: flex; align-items: flex-start;
+  gap: 6px; opacity: 0.7;
+}
+.chart-caption::before { content: '▲'; font-size: 9px; margin-top: 2px; flex-shrink: 0; }
+
+.chart-tool-badge {
+  display: inline-flex; align-items: center; gap: 6px;
+  font-size: 11px; font-weight: 700; letter-spacing: 0.07em; text-transform: uppercase;
+  padding: 3px 10px; border-radius: 100px; margin-bottom: 12px;
+}
+.badge-powerbi { background: rgba(241,179,57,0.15); color: #d4a017; border: 1px solid rgba(241,179,57,0.3); }
+.badge-codap   { background: rgba(22,160,133,0.12); color: #16a085; border: 1px solid rgba(22,160,133,0.3); }
+.badge-colab   { background: rgba(249,130,48,0.12); color: #f58220; border: 1px solid rgba(249,130,48,0.3); }
+
+/* Charts grid  2 up */
+.charts-2col { display: grid; grid-template-columns: 1fr 1fr; gap: 32px; }
+@media(max-width:800px){ .charts-2col { grid-template-columns: 1fr; } }
+
+/* ═══════════════════════════════════════════
+   DIVIDER
+═══════════════════════════════════════════ */
+.divider-rule {
+  border: none;
+  border-top: 1px solid var(--border);
+  margin: 60px 0;
+}
+
+/* ═══════════════════════════════════════════
+   CALLOUT BOX
+═══════════════════════════════════════════ */
+.callout {
+  border-left: 4px solid var(--accent2);
+  background: rgba(230,126,34,0.06);
+  padding: 20px 24px;
+  border-radius: 0 8px 8px 0;
+  margin: 32px 0;
+}
+.callout p { font-size: 16px; color: var(--ink); margin-bottom: 0; }
+.callout strong { color: var(--accent2); }
+.callout.ph { border-left-color: rgba(200,150,50,0.4); background: rgba(200,150,50,0.05); }
+.callout.ph p { color: rgba(26,26,42,0.3); font-style: italic; }
+
+/* ═══════════════════════════════════════════
+   HUMAN STORY / QUOTE SECTION
+═══════════════════════════════════════════ */
+.quote-section {
+  background: var(--ink);
+  padding: 100px 0;
+  position: relative; overflow: hidden;
+}
+.quote-section::before {
+  content: '\201C';
+  position: absolute; top: -40px; left: 20px;
+  font-family: var(--serif);
+  font-size: 400px; line-height: 1;
+  color: rgba(255,255,255,0.03);
+  pointer-events: none;
+  user-select: none;
+}
+.quote-inner { max-width: 800px; margin: 0 auto; padding: 0 24px; }
+.quote-label {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase;
+  color: var(--accent2); margin-bottom: 32px;
+  display: flex; align-items: center; gap: 10px;
+}
+.quote-label::before { content: ''; width: 32px; height: 2px; background: var(--accent2); }
+
+blockquote.hero-quote {
+  font-family: var(--serif);
+  font-size: clamp(22px, 3.5vw, 36px);
+  font-weight: 400; font-style: italic;
+  color: #fff; line-height: 1.5;
+  margin-bottom: 24px; position: relative; z-index: 1;
+}
+blockquote.hero-quote.ph {
+  color: rgba(255,255,255,0.2);
+}
+.quote-attribution {
+  font-size: 15px; color: rgba(255,255,255,0.45);
+  display: flex; align-items: center; gap: 12px;
+}
+.quote-attribution .attr-line { width: 24px; height: 2px; background: rgba(255,255,255,0.2); }
+.quote-attribution .attr-name { color: rgba(255,255,255,0.7); font-weight: 600; }
+.quote-attribution.ph { color: rgba(255,255,255,0.2); }
+
+/* Context paragraphs around the quote */
+.interview-context {
+  margin-top: 48px;
+  display: grid; grid-template-columns: 1fr 1fr; gap: 32px;
+}
+@media(max-width:700px){ .interview-context { grid-template-columns: 1fr; } }
+.interview-context-block { }
+.interview-context-block h4 {
+  font-size: 12px; text-transform: uppercase; letter-spacing: 0.1em;
+  color: rgba(255,255,255,0.35); margin-bottom: 12px; font-weight: 600;
+}
+.interview-context-block p { font-size: 15px; color: rgba(255,255,255,0.55); line-height: 1.7; margin: 0; }
+.interview-context-block p.ph { color: rgba(255,255,255,0.2); font-style: italic; }
+
+/* ═══════════════════════════════════════════
+   COMPARISON VISUAL
+═══════════════════════════════════════════ */
+.compare-section { padding: 80px 0; background: var(--paper2); }
+.compare-grid {
+  display: grid; grid-template-columns: 1fr 1fr; gap: 3px;
+  border-radius: 16px; overflow: hidden; margin-top: 40px;
+}
+@media(max-width:600px){ .compare-grid { grid-template-columns: 1fr; } }
+.compare-panel {
+  background: var(--paper);
+  padding: 40px 36px;
+  position: relative;
+}
+.compare-panel.dark { background: var(--ink); }
+.compare-year {
+  font-family: var(--serif); font-size: 80px; font-weight: 700;
+  line-height: 1; opacity: 0.08; position: absolute;
+  bottom: 12px; right: 20px; pointer-events: none;
+}
+.compare-panel.dark .compare-year { color: #fff; }
+.compare-tag {
+  font-size: 11px; font-weight: 700; letter-spacing: 0.1em;
+  text-transform: uppercase; padding: 4px 12px; border-radius: 100px;
+  display: inline-flex; margin-bottom: 20px;
+}
+.compare-tag.then { background: rgba(26,26,42,0.08); color: var(--ink-light); }
+.compare-tag.now  { background: rgba(192,57,43,0.15); color: var(--accent); }
+.compare-item { margin-bottom: 20px; }
+.compare-item .ci-label { font-size: 12px; color: var(--ink-light); margin-bottom: 4px; text-transform: uppercase; letter-spacing: 0.07em; font-weight: 600; }
+.compare-panel.dark .ci-label { color: rgba(255,255,255,0.4); }
+.compare-item .ci-value {
+  font-family: var(--serif); font-size: 28px; font-weight: 700;
+  color: var(--ink); line-height: 1;
+}
+.compare-panel.dark .ci-value { color: #fff; }
+.compare-item .ci-value.ph { color: rgba(26,26,42,0.2); font-style: italic; font-size: 18px; }
+.compare-panel.dark .ci-value.ph { color: rgba(255,255,255,0.15); }
+.compare-note { font-size: 13px; color: var(--ink-light); margin-top: 6px; line-height: 1.5; }
+.compare-panel.dark .compare-note { color: rgba(255,255,255,0.4); }
+
+/* ═══════════════════════════════════════════
+   CALL TO ACTION
+═══════════════════════════════════════════ */
+.cta-section { padding: 100px 0; background: var(--ink); }
+.cta-inner { max-width: 900px; margin: 0 auto; padding: 0 24px; }
+.cta-eyebrow { color: var(--accent2); font-size: 12px; font-weight: 700; letter-spacing: 0.12em; text-transform: uppercase; margin-bottom: 20px; }
+.cta-section h2 { color: #fff; font-size: clamp(32px, 5vw, 56px); margin-bottom: 24px; }
+.cta-section .lead { color: rgba(255,255,255,0.6); font-size: 18px; max-width: 620px; margin-bottom: 48px; }
+.cta-actions {
+  display: flex; gap: 16px; flex-wrap: wrap; margin-bottom: 64px;
+}
+.btn {
+  display: inline-flex; align-items: center; gap: 8px;
+  padding: 14px 28px; border-radius: 10px; font-size: 15px; font-weight: 700;
+  cursor: pointer; transition: all 0.2s; text-decoration: none; font-family: var(--sans);
+  border: none;
+}
+.btn-primary { background: var(--accent); color: #fff; }
+.btn-primary:hover { background: #a93226; color: #fff; text-decoration: none; transform: translateY(-2px); box-shadow: 0 8px 20px rgba(192,57,43,0.3); }
+.btn-outline { background: transparent; color: rgba(255,255,255,0.7); border: 1.5px solid rgba(255,255,255,0.2); }
+.btn-outline:hover { background: rgba(255,255,255,0.06); color: #fff; text-decoration: none; border-color: rgba(255,255,255,0.4); }
+.btn.ph { background: rgba(255,255,255,0.06); color: rgba(255,255,255,0.25); cursor: default; border: 1.5px dashed rgba(255,255,255,0.15); }
+
+/* CTA stat row */
+.cta-stat-row {
+  display: grid; grid-template-columns: repeat(3, 1fr);
+  gap: 1px; border-radius: 12px; overflow: hidden;
+  background: rgba(255,255,255,0.06);
+}
+@media(max-width:600px){ .cta-stat-row { grid-template-columns: 1fr; } }
+.cta-stat-block {
+  background: rgba(255,255,255,0.03);
+  padding: 28px 24px;
+}
+.cta-stat-block .csb-val {
+  font-family: var(--serif); font-size: 40px; font-weight: 700;
+  color: var(--accent2); line-height: 1; margin-bottom: 8px;
+}
+.cta-stat-block .csb-val.ph { color: rgba(255,255,255,0.15); font-size: 20px; font-style: italic; }
+.cta-stat-block .csb-text { font-size: 14px; color: rgba(255,255,255,0.45); line-height: 1.5; }
+
+/* ═══════════════════════════════════════════
+   REFERENCE LIST
+═══════════════════════════════════════════ */
+.references-section { background: var(--paper2); padding: 60px 0; }
+.references-section h3 { font-size: 18px; margin-bottom: 24px; }
+.ref-list { list-style: none; }
+.ref-list li {
+  font-size: 14px; padding: 12px 0; border-bottom: 1px solid var(--border);
+  color: var(--ink-light); line-height: 1.6;
+}
+.ref-list li:last-child { border-bottom: none; }
+.ref-list li .ref-ph { color: rgba(26,26,42,0.25); font-style: italic; }
+.ref-num { color: var(--accent); font-weight: 700; margin-right: 10px; }
+
+/* ═══════════════════════════════════════════
+   FOOTER
+═══════════════════════════════════════════ */
+footer {
+  background: #0f0f1a; padding: 40px 24px;
+  text-align: center; color: rgba(255,255,255,0.25); font-size: 13px;
+  line-height: 1.7;
+}
+footer strong { color: rgba(255,255,255,0.45); }
+
+/* ═══════════════════════════════════════════
+   UTILITY
+═══════════════════════════════════════════ */
+.mt-8  { margin-top: 8px; }
+.mt-16 { margin-top: 16px; }
+.mt-32 { margin-top: 32px; }
+.mt-48 { margin-top: 48px; }
+.text-center { text-align: center; }
+
+/* ── Responsive ── */
+@media(max-width:600px){
+  .nav-links { display: none; }
+  .hero-stats { flex-direction: column; }
+  .hero-stat { min-width: 0; }
+}
+</style>
+</head>
+<body>
+
+<!-- ═══════════════════════════════════════
+     NAVIGATION
+═══════════════════════════════════════ -->
+<nav>
+  <div class="nav-inner">
+    <div class="nav-brand">
+      <div class="dot"></div>
+      Data Story: Housing Affordability
+    </div>
+    <div class="nav-links">
+      <a href="#problem-statement">Problem</a>
+      <a href="#context">Context</a>
+      <a href="#data">The Data</a>
+      <a href="#human-story">Human Story</a>
+      <a href="#then-vs-now">Then vs Now</a>
+      <a href="#action">Take Action</a>
+    </div>
+    <div class="nav-source">
+      <span>ACT BSSS · Year 12</span>
+    </div>
+  </div>
+</nav>
+
+
+<!-- ═══════════════════════════════════════
+     HERO
+═══════════════════════════════════════ -->
+<section class="hero">
+  <div class="hero-bg"></div>
+
+  <!-- Decorative skyline -->
+  <div class="hero-skyline">
+    <div class="house-block" style="width:60px;height:80px;--w:30px;--h:28px"></div>
+    <div class="house-block" style="width:45px;height:110px;--w:22px;--h:22px"></div>
+    <div class="house-block" style="width:80px;height:65px;--w:40px;--h:35px"></div>
+    <div class="house-block" style="width:30px;height:130px;--w:15px;--h:15px"></div>
+    <div class="house-block" style="width:55px;height:90px;--w:28px;--h:26px"></div>
+    <div class="house-block" style="width:70px;height:75px;--w:35px;--h:30px"></div>
+    <div class="house-block" style="width:40px;height:115px;--w:20px;--h:20px"></div>
+    <div class="house-block" style="width:65px;height:85px;--w:32px;--h:28px"></div>
+    <div class="house-block" style="width:50px;height:100px;--w:25px;--h:24px"></div>
+    <div class="house-block" style="width:75px;height:70px;--w:38px;--h:32px"></div>
+    <div class="house-block" style="width:35px;height:120px;--w:18px;--h:18px"></div>
+    <div class="house-block" style="width:60px;height:80px;--w:30px;--h:28px"></div>
+  </div>
+
+  <div class="scroll-cue">
+    <div class="scroll-arrow">↓</div>
+    Scroll
+  </div>
+
+  <div class="hero-content">
+    <div class="hero-eyebrow">
+      <span class="pulse"></span>
+      A Data Story · Housing Affordability in Australia
+    </div>
+
+    <h1>The Australian<br><em>Dream:</em><br>Priced Out.</h1>
+
+    <p class="hero-deck">
+      For generations, owning a home was a social expectation, not a financial achievement.
+      Somewhere along the way, housing stopped being a place to live and became an investment asset. This story looks at what that shift has cost us.
+    </p>
+
+    <!-- Key stats bar  POPULATE WITH REAL DATA -->
+    <div class="hero-stats">
+      <div class="hero-stat" data-color="red">
+        <div class="stat-value">$1.04M</div>
+        <div class="stat-label">Median house price in Canberra (2025)</div>
+        <div class="stat-source">CoreLogic / Cotality, 2025</div>
+      </div>
+      <div class="hero-stat" data-color="amber">
+        <div class="stat-value">~12 years</div>
+        <div class="stat-label">For a single median earner to save a 20% deposit</div>
+        <div class="stat-source">The Australia Institute, 2024</div>
+      </div>
+      <div class="hero-stat" data-color="gold">
+        <div class="stat-value">54%</div>
+        <div class="stat-label">Of low-income renters spending more than 30% of income on rent</div>
+        <div class="stat-source">AHURI / housingdata.gov.au, 2023</div>
+      </div>
+      <div class="hero-stat" data-color="teal">
+        <div class="stat-value">50% → 36%</div>
+        <div class="stat-label">Home ownership rate among 25–29 year olds, 1971 vs 2021</div>
+        <div class="stat-source">ABS Census, 2021</div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════
+     PROBLEM STATEMENT
+═══════════════════════════════════════ -->
+<section class="section" id="problem-statement" style="padding: 60px 0; background: var(--ink);">
+  <div class="inner">
+    <div class="section-label" style="color: var(--accent2);">Step 3: Define</div>
+    <div style="
+      border-left: 4px solid var(--accent2);
+      padding: 32px 36px;
+      background: rgba(255,255,255,0.04);
+      border-radius: 0 12px 12px 0;
+      margin-top: 20px;
+    ">
+      <div style="font-size: 11px; font-weight: 700; letter-spacing: 0.1em; text-transform: uppercase; color: rgba(255,255,255,0.35); margin-bottom: 16px;">Problem Statement</div>
+      <p style="
+        font-family: var(--serif);
+        font-size: clamp(18px, 2.5vw, 24px);
+        color: #fff;
+        line-height: 1.65;
+        margin: 0;
+      ">
+        Young Australians working ordinary jobs like teaching, nursing and retail can no longer
+        afford to buy a home in Canberra. Since 2000, house prices have risen more than twice as
+        fast as wages, creating a structural gap that individual saving habits cannot bridge. A home
+        that used to cost around three times an average annual salary now costs over ten times that
+        amount. This intergenerational inequity means an entire generation is bearing the
+        consequences of policy decisions, including negative gearing, capital gains tax discounts, and
+        underinvestment in housing supply, that were made long before they entered the workforce.
+        This data story examines the evidence behind that claim.
+      </p>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════
+     SECTION 2  THE CONTEXT
+═══════════════════════════════════════ -->
+<section class="section" id="context">
+  <div class="inner">
+    <div class="section-label">Section 01: Context</div>
+
+    <div class="context-grid">
+      <div class="context-text">
+        <h2>What happened to the Australian Dream?</h2>
+
+        <p class="lead">
+          For most of the last century, buying a home was just a normal part of life in Australia.
+          Today it has become one of the biggest financial challenges young Australians face.
+        </p>
+
+        <p>
+          For most of the 20th century, housing in Australia functioned primarily as shelter. Prices were tied closely to construction costs, local incomes, and population growth. That relationship began to break down in the late 1990s when a combination of policy decisions fundamentally changed what housing was for. Negative gearing, which allows investors to deduct rental losses against their income tax, and the 1999 capital gains tax discount made property one of the most tax-advantaged investment classes in Australia. This accelerated the commodification of housing: the process by which a basic necessity is increasingly treated as a financial asset rather than a social one. Record-low interest rates and restricted supply added further pressure. Between 2000 and 2024, the Canberra median house price rose from $191,511 to over $980,000, an increase of more than 400%. The average full-time wage grew from $38,000 to $100,016 over the same period, which is less than a third of that rate (ABS, 2025; CoreLogic, 2025).
+        </p>
+
+        <div class="callout mt-16">
+          <p>Between 1980 and 2024, house prices in Australia grew by <strong>1,599%</strong>. Wages grew by just <strong>540%</strong> over the same period. (Sources: BIS/FRED QAUN628BIS; ABS Average Weekly Earnings 6302.0)</p>
+        </div>
+
+        <p class="mt-16">
+          The consequences of this market failure are not shared equally. The compounding effect of rising property values means those who already own homes accumulate wealth passively, while those who don't fall further behind with each passing year. This creates a self-reinforcing cycle of inequality. Essential workers, including nurses, teachers, and childcare workers, are being priced out of the very communities they serve, which threatens the functioning of public services as much as it threatens individual wellbeing. ABS data shows home ownership among 25–29 year olds has fallen from 50% in 1971 to just 36% in 2021 (ABS, 2021). More than half of low-income renter households now spend over 30% of their income on housing (AHURI, 2024), money that cannot go toward savings, education, or economic participation. When a basic need becomes unaffordable for ordinary workers, it stops being a personal problem and becomes a public one.
+        </p>
+      </div>
+
+      <div>
+        <div class="fact-card">
+          <div class="fact-number">10×</div>
+          <div class="fact-text">
+            A Canberra home now costs over ten times the average annual wage. In 1985 it cost around four times.
+          </div>
+          <div class="fact-source">Sources: CoreLogic, 2025; ABS Average Weekly Earnings 6302.0; allhomes, 2018</div>
+        </div>
+
+        <div class="fact-card mt-16">
+          <div class="fact-number">443%</div>
+          <div class="fact-text">
+            Canberra house prices have risen 443% since 2000. Average wages rose just 163% over the same period.
+          </div>
+          <div class="fact-source">Sources: BIS/FRED QAUN628BIS; ABS Average Weekly Earnings 6302.0; allhomes, 2018</div>
+        </div>
+      </div>
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════
+     SECTION 3  THE DATA
+═══════════════════════════════════════ -->
+<section class="section section-alt" id="data">
+  <div class="inner">
+    <div class="section-label">Section 02: The Data</div>
+    <h2>What the numbers show</h2>
+    <p class="lead" style="max-width:640px">
+      Here are six charts that each show a different side of the housing affordability problem.
+      The Power BI ones are interactive, so you can drill down into the data yourself.
+    </p>
+
+    <hr class="divider-rule">
+
+    <!-- ── CHART 1: House Prices Over Time (Power BI) ── -->
+    <div class="chart-wrapper">
+      <span class="chart-tool-badge badge-powerbi">⚡ Power BI</span>
+      <div class="chart-headline">The gap between house prices and wages has never been wider</div>
+      <div class="chart-deck">This chart tracks Canberra house prices against the average full-time wage from 1980 to 2024. The two lines move together until the late 1990s, then diverge sharply, marking the point at which housing decoupled from the economy most people live in.</div>
+      <div class="chart-frame" style="border-radius:12px;overflow:hidden;">
+        <iframe title="Chart 1: House Prices vs Wages"
+          width="100%" height="400"
+          src="https://app.powerbi.com/view?r=eyJrIjoiOWY4ZGYyOGEtMjFmYS00NTk0LWI5MTQtMWQxMzE3OTUzOTQyIiwidCI6ImRhZmZmNzIxLTBkNDAtNGI4OS04NjFlLTYwYjZmZTc4ZDcyMCJ9&pageName=ef9d0d24ae3a0a8b461a"
+          frameborder="0" allowFullScreen="true"></iframe>
+      </div>
+      <div class="chart-caption">Source: BIS/FRED QAUN628BIS (house price index); ABS Average Weekly Earnings 6302.0 (wages). Chart built in Power BI using dataset 02_au_house_prices_vs_wages_annual.csv.</div>
+    </div>
+
+    <hr class="divider-rule">
+
+    <!-- ── CHART 2: Rental Stress Map (Power BI) ── -->
+    <div class="chart-wrapper">
+      <span class="chart-tool-badge badge-powerbi">⚡ Power BI</span>
+      <div class="chart-headline">Low-income renters in every state are in financial stress</div>
+      <div class="chart-deck">More than half of low-income rental households across Australia spend over 30% of their income on rent, the threshold at which housing costs begin to crowd out other essential spending. This is not a regional problem; it is a systemic one. Use the map to explore how it varies by state.</div>
+      <div class="chart-frame" style="border-radius:12px;overflow:hidden;">
+        <iframe title="Chart 2: Rental Stress by State"
+          width="100%" height="480"
+          src="https://app.powerbi.com/view?r=eyJrIjoiOWY4ZGYyOGEtMjFmYS00NTk0LWI5MTQtMWQxMzE3OTUzOTQyIiwidCI6ImRhZmZmNzIxLTBkNDAtNGI4OS04NjFlLTYwYjZmZTc4ZDcyMCJ9&pageName=40bd362ea79eac784db7"
+          frameborder="0" allowFullScreen="true"></iframe>
+      </div>
+      <div class="chart-caption">Source: AHURI / housingdata.gov.au (2023). Low-income rental households spending more than 30% of income on rent, by state and territory. Chart built in Power BI using dataset 04_au_rental_stress_by_state.csv.</div>
+    </div>
+
+    <hr class="divider-rule">
+
+    <!-- ── CHARTS 3 & 4: Two-column layout ── -->
+    <div class="charts-2col">
+
+      <!-- Chart 3: Deposit savings timeline (CODAP) -->
+      <div class="chart-wrapper">
+        <span class="chart-tool-badge badge-codap">🌊 CODAP</span>
+        <div class="chart-headline">How long does it take to save a deposit?</div>
+        <div class="chart-deck">Years required to save a 20% deposit on a Canberra home, by occupation. A casual hospitality worker would need 26 years; a surgeon fewer than 5.</div>
+        <div class="chart-frame" style="border-radius:12px;overflow:hidden;background:#fff;">
+          <img
+            src="src/Screenshot 2026-06-04 at 10-14-02 Untitled Document - CODAP.png"
+            alt="Dot plot showing years to save a 20% deposit by occupation. Casual hospitality workers need 26 years, childcare workers 22, retail assistants 20. Surgeons need under 5 years."
+            style="width:100%;display:block;border-radius:12px;"
+          >
+        </div>
+        <div class="chart-caption">Source: The Australia Institute (2024); Domain First Home Buyers Report (2024). Based on Canberra median house price $1,040,000 (CoreLogic, 2025). Chart created in CODAP using dataset 05_deposit_savings_by_occupation_2024.csv.</div>
+      </div>
+
+      <!-- Chart 4: Home ownership by age group (Power BI) -->
+      <div class="chart-wrapper">
+        <span class="chart-tool-badge badge-powerbi">⚡ Power BI</span>
+        <div class="chart-headline">Each generation owns fewer homes than the one before</div>
+        <div class="chart-deck">Home ownership rates for young Australians have fallen at every census since 1971, a pattern that reflects a structural shift, not a generational attitude change. The 25–29 age group has dropped 14 percentage points over 50 years, suggesting that intergenerational equity in housing access has significantly deteriorated.</div>
+        <div class="chart-frame" style="border-radius:12px;overflow:hidden;">
+          <iframe title="Chart 4: Home Ownership by Age Group"
+            width="100%" height="340"
+            src="https://app.powerbi.com/view?r=eyJrIjoiOWY4ZGYyOGEtMjFmYS00NTk0LWI5MTQtMWQxMzE3OTUzOTQyIiwidCI6ImRhZmZmNzIxLTBkNDAtNGI4OS04NjFlLTYwYjZmZTc4ZDcyMCJ9&pageName=a75bd6f49e3b271c1932"
+            frameborder="0" allowFullScreen="true"></iframe>
+        </div>
+        <div class="chart-caption">Source: ABS Census of Population and Housing, 1971–2021. Chart built in Power BI using dataset 03_au_home_ownership_by_age_census.csv.</div>
+      </div>
+
+    </div>
+
+    <hr class="divider-rule">
+
+    <!-- ── CHART 5: Colab / matplotlib ── -->
+    <div class="chart-wrapper">
+      <span class="chart-tool-badge badge-colab">🔬 Google Colab · matplotlib</span>
+      <div class="chart-headline">House prices have grown more than twice as fast as wages since 1980</div>
+      <div class="chart-deck">Both series are indexed to 100 at 1980 so they start at the same point. The growing red gap between the two lines shows how much faster prices have risen compared to wages over the last 44 years.</div>
+      <div class="chart-frame" style="border-radius:12px;overflow:hidden;background:#faf9f6;">
+        <img
+          src="src/chart5_prices_vs_wages.png"
+          alt="Line chart showing house price index and average wage index both starting at 100 in 1980. By 2024 the house price index has reached 1699 while wages have only reached 640, with a large shaded gap between the two lines."
+          style="width:100%;display:block;border-radius:12px;"
+        >
+      </div>
+      <div class="chart-caption">Chart generated using Python (matplotlib) in Google Colab. Sources: Bank for International Settlements via FRED (QAUN628BIS); ABS Average Weekly Earnings 6302.0. Both series rebased to 100 at 1980.</div>
+    </div>
+
+    <hr class="divider-rule">
+
+    <!-- ── CHART 6: Who is affected most (Power BI) ── -->
+    <div class="chart-wrapper">
+      <span class="chart-tool-badge badge-powerbi">⚡ Power BI</span>
+      <div class="chart-headline">The housing crisis hits the lowest earners hardest</div>
+      <div class="chart-deck">Housing stress is not distributed equally; it is deeply stratified by income. The lowest quintile is more than 30 times more likely to be in housing stress than the highest, and the gap widened between 2019 and 2023. This reflects a broader pattern of wealth inequality, where rising property values benefit owners while renters and low earners are left more exposed.</div>
+      <div class="chart-frame" style="border-radius:12px;overflow:hidden;">
+        <iframe title="Chart 6: Housing Stress by Income Quintile"
+          width="100%" height="380"
+          src="https://app.powerbi.com/view?r=eyJrIjoiOWY4ZGYyOGEtMjFmYS00NTk0LWI5MTQtMWQxMzE3OTUzOTQyIiwidCI6ImRhZmZmNzIxLTBkNDAtNGI4OS04NjFlLTYwYjZmZTc4ZDcyMCJ9&pageName=1d5c717016bb7840e29e"
+          frameborder="0" allowFullScreen="true"></iframe>
+      </div>
+      <div class="chart-caption">Source: AIHW Housing Affordability (2024); AHURI. Housing stress defined as spending more than 30% of gross income on housing costs. Chart built in Power BI using dataset 06_housing_stress_by_income_quintile.csv.</div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════
+     SECTION 4  THE HUMAN STORY
+═══════════════════════════════════════ -->
+<section class="quote-section" id="human-story">
+  <div class="quote-inner">
+
+    <div class="quote-label">Section 03: The Human Story</div>
+
+    <blockquote class="hero-quote">
+      "It should be a basic human right, not a privilege, not an investment. It&#8217;s something you need. And right now, people have twenty houses they rent out, while other people can&#8217;t even buy one."
+    </blockquote>
+
+    <div class="quote-attribution">
+      <div class="attr-line"></div>
+      <span><span class="attr-name">Mum, Canberra</span>, interviewed June 2026</span>
+    </div>
+
+    <div class="interview-context">
+      <div class="interview-context-block">
+        <h4>What she told me</h4>
+        <p>
+          Mum grew up in an immigrant family that arrived in Australia with nothing. For them, owning a home represented economic security and social belonging, the tangible proof that hard work could produce a stable life. Her parents bought a three-bedroom house in Canberra for $156,000, roughly three times the average annual wage at the time. She noted that the relationship between effort and reward that made homeownership achievable for her parents no longer exists in the same way. The same house now costs over $900,000. When I asked whether young people have a fair shot at buying a home today, she was direct: &#8220;You&#8217;ve got zero chance, Will, unless Mum and Dad help you out.&#8221; She rejected the idea that this is about individual spending discipline, recognising instead that it reflects a structural mismatch between the price of housing and the wages most people earn, one that cannot be solved through personal behaviour alone.
+        </p>
+      </div>
+      <div class="interview-context-block">
+        <h4>What the data backs up</h4>
+        <p>
+          The data confirms what Mum described. In 2000, the Canberra median house price was $191,511, approximately five times the average annual wage, already stretched compared to the 1985 ratio of around four times. By 2025 it had reached $1,040,000, now over ten times the average wage (ABS, 2025; CoreLogic, 2025). This is the compounding effect of commodification: as each generation of owners benefits from rising values, the barrier for the next generation rises with it. ABS Census data shows home ownership for 25–29 year olds has dropped from 50% in 1971 to just 36% in 2021 (ABS, 2021), a trend that tracks almost exactly with the increasing financialisation of the housing market. Mum&#8217;s point about essential workers being priced out of the communities they serve is also borne out: over 50% of low-income renters, a category that includes many nurses, teachers, and care workers, now spend more than 30% of their income on rent (AHURI, 2024).
+        </p>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════
+     SECTION 5  THEN VS NOW COMPARISON
+═══════════════════════════════════════ -->
+<section class="compare-section" id="then-vs-now">
+  <div class="inner">
+    <div class="section-label">Section 04: Then vs Now</div>
+    <h2>What changed in a generation?</h2>
+    <p style="max-width:600px;color:var(--ink-light);font-size:16px">
+      If your parents bought a house when they were young, what would that same house cost you today?
+      The numbers reveal a clear pattern of intergenerational inequity, with each decade making ownership harder than the last.
+    </p>
+
+    <div class="compare-grid">
+
+      <!-- THEN panel -->
+      <div class="compare-panel">
+        <div class="compare-year">1985</div>
+        <div class="compare-tag then">Then: 1985</div>
+
+        <div class="compare-item">
+          <div class="ci-label">Median house price (Canberra)</div>
+          <div class="ci-value">~$80,000</div>
+          <div class="compare-note">Derived from BIS/FRED price index; allhomes historical data</div>
+        </div>
+        <div class="compare-item">
+          <div class="ci-label">Average full-time wage</div>
+          <div class="ci-value">$20,956</div>
+          <div class="compare-note">ABS Average Weekly Earnings 6302.0</div>
+        </div>
+        <div class="compare-item">
+          <div class="ci-label">Price-to-income ratio</div>
+          <div class="ci-value">~4× annual wage</div>
+        </div>
+        <div class="compare-item">
+          <div class="ci-label">Years to save deposit (20%)</div>
+          <div class="ci-value">~4 years</div>
+        </div>
+      </div>
+
+      <!-- NOW panel -->
+      <div class="compare-panel dark">
+        <div class="compare-year" style="color:#fff">2024</div>
+        <div class="compare-tag now">Now: 2024</div>
+
+        <div class="compare-item">
+          <div class="ci-label">Median house price (Canberra)</div>
+          <div class="ci-value">$980,000</div>
+          <div class="compare-note">CoreLogic / Cotality, 2024</div>
+        </div>
+        <div class="compare-item">
+          <div class="ci-label">Average full-time wage</div>
+          <div class="ci-value">$100,016</div>
+          <div class="compare-note">ABS Average Weekly Earnings 6302.0, 2024</div>
+        </div>
+        <div class="compare-item">
+          <div class="ci-label">Price-to-income ratio</div>
+          <div class="ci-value">~10× annual wage</div>
+        </div>
+        <div class="compare-item">
+          <div class="ci-label">Years to save deposit (20%)</div>
+          <div class="ci-value">~12 years</div>
+        </div>
+      </div>
+
+    </div>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════
+     SECTION 6  CALL TO ACTION
+═══════════════════════════════════════ -->
+<section class="cta-section" id="action">
+  <div class="cta-inner">
+
+    <div class="cta-eyebrow">Section 05: What Needs to Change</div>
+
+    <!-- ── POPULATE AFTER FINALISING YOUR ARGUMENT ── -->
+    <h2>This is fixable.<br>But only if we act.</h2>
+
+    <p class="lead">
+      The data in this story isn't just numbers. It documents a market failure, a situation where the normal mechanisms of supply, demand and price have stopped delivering a basic necessity to the people who need it most.
+    </p>
+
+    <p style="color:rgba(255,255,255,0.6);font-size:17px;line-height:1.8;max-width:780px;margin-bottom:24px;">
+      When housing is primarily an investment asset, its price is driven by investor returns rather than community need. The result is a self-reinforcing cycle: rising prices create wealth for those who already own property, while simultaneously making ownership less achievable for those who don't. This is not an accident; it is the predictable outcome of policy settings, particularly negative gearing and capital gains tax discounts, that systematically advantage investors over first home buyers. My mum identified this directly: housing should be a human right, not an opportunity for wealth accumulation by a few. The data backs that up. People own twenty properties while others can't afford one, and the tax system makes that arrangement profitable.
+    </p>
+
+    <p style="color:rgba(255,255,255,0.6);font-size:17px;line-height:1.8;max-width:780px;margin-bottom:40px;">
+      Addressing this requires treating housing the way we treat other essential infrastructure, as something government has a responsibility to ensure is accessible, not simply as a private market to be left alone. That means evaluating policies that distort the market in favour of investors, investing in supply, and accepting that intergenerational fairness is a legitimate goal of housing policy. Without that shift in how we think about what housing is for, the gap documented in this story will continue to widen with each generation.
+    </p>
+
+    <div class="cta-actions">
+      <a href="https://www.ahuri.edu.au" class="btn btn-primary" target="_blank">Read the AHURI research</a>
+      <a href="#data" class="btn btn-outline">Explore the data</a>
+    </div>
+
+    <div class="cta-stat-row">
+      <div class="cta-stat-block">
+        <div class="csb-val">443%</div>
+        <div class="csb-text">Rise in Canberra house prices since 2000. Wages rose 163% in the same period.</div>
+      </div>
+      <div class="cta-stat-block">
+        <div class="csb-val">26 yrs</div>
+        <div class="csb-text">How long a casual hospitality worker would need to save a 20% deposit.</div>
+      </div>
+      <div class="cta-stat-block">
+        <div class="csb-val">1 in 2</div>
+        <div class="csb-text">Low-income renters across Australia are in housing stress right now.</div>
+      </div>
+    </div>
+
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════
+     REFERENCE LIST
+═══════════════════════════════════════ -->
+<section class="references-section">
+  <div class="inner-narrow">
+    <div class="section-label">References</div>
+    <h3>Reference List</h3>
+    <p style="font-size:14px;color:var(--ink-light);margin-bottom:24px">
+      All sources are listed in APA 7th edition format, in alphabetical order.
+    </p>
+
+    <ul class="ref-list">
+      <li>
+        <span class="ref-num">1.</span>
+        allhomes. (2018, August 17). <em>How Canberra house prices have changed since 2000.</em> <a href="https://www.allhomes.com.au/news/how-canberra-house-prices-have-changed-since-2000-20180817-h14495-758709" target="_blank">https://www.allhomes.com.au/news/how-canberra-house-prices-have-changed-since-2000</a>
+      </li>
+      <li>
+        <span class="ref-num">2.</span>
+        Australian Bureau of Statistics. (2021). <em>Owning a home has decreased over successive generations.</em> <a href="https://www.abs.gov.au/media-centre/media-releases/owning-home-has-decreased-over-successive-generations" target="_blank">https://www.abs.gov.au/media-centre/media-releases/owning-home-has-decreased-over-successive-generations</a>
+      </li>
+      <li>
+        <span class="ref-num">3.</span>
+        Australian Bureau of Statistics. (2025). <em>Average weekly earnings, Australia, November 2025.</em> <a href="https://www.abs.gov.au/statistics/labour/earnings-and-working-conditions/average-weekly-earnings-australia/latest-release" target="_blank">https://www.abs.gov.au/statistics/labour/earnings-and-working-conditions/average-weekly-earnings-australia/latest-release</a>
+      </li>
+      <li>
+        <span class="ref-num">4.</span>
+        Australian Housing and Urban Research Institute. (2024). <em>More 'rich' are renting, while low income renters face greater stress.</em> <a href="https://www.ahuri.edu.au/analysis/news/more-rich-are-renting-while-low-income-renters-face-greater-stress" target="_blank">https://www.ahuri.edu.au/analysis/news/more-rich-are-renting-while-low-income-renters-face-greater-stress</a>
+      </li>
+      <li>
+        <span class="ref-num">5.</span>
+        Australian Institute of Health and Welfare. (2024). <em>Housing affordability.</em> <a href="https://www.aihw.gov.au/reports/australias-welfare/housing-affordability" target="_blank">https://www.aihw.gov.au/reports/australias-welfare/housing-affordability</a>
+      </li>
+      <li>
+        <span class="ref-num">6.</span>
+        The Australia Institute. (2024). <em>Housing affordability crisis: Saving for a deposit forever.</em> <a href="https://australiainstitute.org.au/post/housing-affordability-crisis-saving-for-a-deposit-forever/" target="_blank">https://australiainstitute.org.au/post/housing-affordability-crisis-saving-for-a-deposit-forever/</a>
+      </li>
+      <li>
+        <span class="ref-num">7.</span>
+        housingdata.gov.au. (2024). <em>Low income rental households in rental stress.</em> <a href="https://www.housingdata.gov.au/visualisation/housing-affordability/low-income-rental-households-in-rental-stress" target="_blank">https://www.housingdata.gov.au/visualisation/housing-affordability/low-income-rental-households-in-rental-stress</a>
+      </li>
+      <li>
+        <span class="ref-num">8.</span>
+        National Housing Supply and Affordability Council. (2025). <em>State of the housing system 2025.</em> <a href="https://nhsac.gov.au/sites/nhsac.gov.au/files/2025-05/ar-state-housing-system-2025.pdf" target="_blank">https://nhsac.gov.au/sites/nhsac.gov.au/files/2025-05/ar-state-housing-system-2025.pdf</a>
+      </li>
+      <li>
+        <span class="ref-num">9.</span>
+        CoreLogic. (2025). <em>Canberra property market insights, March 2026.</em> NAB. <a href="https://www.nab.com.au/content/dam/nab/documents/reports/loan/canberra-property-market-insights.pdf" target="_blank">https://www.nab.com.au/content/dam/nab/documents/reports/loan/canberra-property-market-insights.pdf</a>
+      </li>
+    </ul>
+  </div>
+</section>
+
+
+<!-- ═══════════════════════════════════════
+     FOOTER
+═══════════════════════════════════════ -->
+<footer>
+  <strong>The Australian Dream: Priced Out</strong><br>
+  A data story by William Smith · Year 12 · St Edmund's College, ACT<br>
+  ACT BSSS Data Science Assessment 2 · 2026<br><br>
+  <span style="opacity:0.5">Built with Power BI · Google Colab · CODAP · HTML/CSS</span>
+</footer>
+
+<script>
+  // ── Active nav link on scroll ──
+  const sections = document.querySelectorAll('section[id]');
+  const navLinks = document.querySelectorAll('.nav-links a');
+
+  const observer = new IntersectionObserver((entries) => {
+    entries.forEach(entry => {
+      if (entry.isIntersecting) {
+        navLinks.forEach(link => {
+          link.classList.toggle(
+            'active',
+            link.getAttribute('href') === '#' + entry.target.id
+          );
+        });
+      }
+    });
+  }, { threshold: 0.4 });
+
+  sections.forEach(s => observer.observe(s));
+
+  // ── Animate hero stats on load ──
+  document.querySelectorAll('.hero-stat').forEach((stat, i) => {
+    stat.style.opacity = '0';
+    stat.style.transform = 'translateY(20px)';
+    stat.style.transition = 'opacity 0.5s ease, transform 0.5s ease';
+    setTimeout(() => {
+      stat.style.opacity = '1';
+      stat.style.transform = 'translateY(0)';
+    }, 600 + i * 120);
+  });
+</script>
+
+</body>
+</html>
