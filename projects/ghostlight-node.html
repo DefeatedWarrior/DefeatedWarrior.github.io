@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Ghostlight Node · DefeatedWarrior</title>
+<meta name="description" content="Open-source Art-Net / sACN to DMX512 node with PoE, RDM and an ESP32-S3.">
+<link rel="stylesheet" href="../assets/style.css">
+
+</head>
+<body>
+<header class="site-header"><div class="in">
+  <a class="brand" href="../index.html"><span class="bulb"></span>DefeatedWarrior</a>
+  <nav>
+    <a href="../index.html#projects">Projects</a><a href="../docs.html">Docs</a><a href="https://github.com/DefeatedWarrior">GitHub</a>
+    <form class="search" action="../search.html" method="get" role="search"><input type="search" name="q" placeholder="Search docs…" aria-label="Search docs"></form>
+  </nav>
+</div></header>
+
+<div class="page">
+  <aside class="toc"><a class="back" href="../index.html#projects">← All projects</a><h4>On this page</h4><a href="#why">Why</a><a href="#specs">Specifications</a><a href="#board">The board</a><a href="#build">Building one</a><a href="#status">Status</a><a href="#docs">Documentation</a><a href="#credits">Credits &amp; licence</a><a href="#docs-index">Documentation</a></aside>
+  <article>
+    <div class="crumbs"><a href="../index.html">Home</a> / Projects / Ghostlight Node</div>
+    <h1>Ghostlight Node</h1>
+    <p class="sub">A low-cost, open-source Art-Net / sACN to DMX512 node with PoE and RDM.</p>
+    <p><span class="badge proto">Rev 1 · untested prototype</span></p>
+    <dl class="facts"><div><dt>Repository</dt><dd><a href="https://github.com/DefeatedWarrior/ghostlight-node">DefeatedWarrior/ghostlight-node</a></dd></div><div><dt>Hardware licence</dt><dd>CERN-OHL-P-2.0</dd></div><div><dt>Firmware</dt><dd>ESP-IDF, MIT</dd></div><div><dt>Tooling</dt><dd>KiCad 7, Python</dd></div><div><dt>Board</dt><dd>100 × 100 mm, 2 layers</dd></div></dl>
+    
+<h2 id="why">Why it exists</h2>
+<p>A <em>ghost light</em> is the single bulb left burning on an otherwise dark stage. The node does the same quiet job: it keeps the rig alive and listening while nothing else is on. The goal is a DMX node you can build for a small fraction of the cost of commercial units, with every file open.</p>
+
+<h2 id="specs">Specifications</h2>
+<table>
+<tr><td>Protocols</td><td>Art-Net, sACN (E1.31), RDM</td></tr>
+<tr><td>DMX</td><td>2 bidirectional ports, SN65HVD72 transceivers (fail-safe for open, short and idle), TVS protected</td></tr>
+<tr><td>Per port</td><td>IN and OUT 3-pole 5.08 mm terminals in parallel, 120 Ω jumper termination, GPIO-switchable bias</td></tr>
+<tr><td>MCU</td><td>ESP32-S3-WROOM-1-N8 (8 MB flash, no PSRAM)</td></tr>
+<tr><td>Network</td><td>WIZnet W5500 with a HR871150C PoE magjack; Wi-Fi also available on the module</td></tr>
+<tr><td>Power</td><td>802.3af PoE (SDAPO DP9700-5V, 5 V / 2 A), USB-C, or external 5 V</td></tr>
+<tr><td>I/O</td><td>WS2812B status LED, an LED per port, BOOT / RESET buttons, UART0 debug header</td></tr>
+<tr><td>Expansion</td><td>12-pin header for a third port or other add-ons</td></tr>
+<tr><td>Assembly</td><td>Designed to be hand-assembled</td></tr>
+</table>
+
+<h2 id="board">The board</h2>
+<div class="gallery">
+  <figure><img src="../assets/img/ghostlight-front.jpg" alt="Ghostlight Node rev1 PCB, front"><figcaption>Front</figcaption></figure>
+  <figure><img src="../assets/img/ghostlight-back.jpg" alt="Ghostlight Node rev1 PCB, back silkscreen"><figcaption>Back (silkscreen only, mirrored)</figcaption></figure>
+</div>
+
+<h2 id="build">Building one</h2>
+<ol>
+<li><strong>Order the PCB:</strong> send the gerber zip from <code>fabrication/</code> to a fab (2 layers, 100 × 100 mm, 1.6 mm, HASL lead-free).</li>
+<li><strong>Order parts:</strong> import <code>bom/BOM_order_purchase.csv</code> into LCSC's BOM tool, add about 10% spare passives and check stock.</li>
+<li><strong>Assemble</strong> by hand using the assembly guide.</li>
+<li><strong>Bring up</strong> in order: USB power, 3V3, Ethernet, DMX, then PoE.</li>
+<li><strong>Flash the firmware</strong> from <code>firmware/</code> with ESP-IDF.</li>
+</ol>
+
+<h2 id="status">Status</h2>
+<div class="note warn"><p><strong>Rev 1 is design-complete but has not been manufactured or tested.</strong> Treat the first batch as a prototype run and read the known-issues document before ordering. The firmware has not been built or run on hardware yet either.</p></div>
+<p>The most valuable contribution right now is results from a built board: photos, scope captures and what broke. A rev 2 roadmap is in the docs.</p>
+
+<h2 id="docs">Documentation</h2>
+<p>The repo carries a full numbered documentation set, plus wiki pages and a schematic PDF.</p>
+<table>
+<tr><th>Build it</th><th>Understand it</th><th>Use it</th></tr>
+<tr><td>BOM and sourcing</td><td>Overview and specs</td><td>Firmware integration</td></tr>
+<tr><td>Ordering guide</td><td>Architecture and power</td><td>DMX ports</td></tr>
+<tr><td>Assembly guide</td><td>Pin map and connectors</td><td>USB and debug</td></tr>
+<tr><td>Bring-up and test</td><td>Ethernet and PoE</td><td>Known issues</td></tr>
+<tr><td>Regenerating the design</td><td>PCB design notes</td><td>Roadmap / rev 2</td></tr>
+</table>
+<div class="links">
+  <a class="btn primary" href="https://github.com/DefeatedWarrior/ghostlight-node">Repository</a>
+  <a class="btn" href="https://github.com/DefeatedWarrior/ghostlight-node/tree/main/docs">Docs</a>
+  <a class="btn" href="https://github.com/DefeatedWarrior/ghostlight-node/tree/main/wiki">Wiki pages</a>
+  <a class="btn" href="https://github.com/DefeatedWarrior/ghostlight-node/blob/main/docs/11-known-issues-and-verification-status.md">Known issues</a>
+</div>
+
+<h2 id="credits">Credits &amp; licence</h2>
+<p>Hardware files are CERN-OHL-P-2.0; firmware is MIT. The firmware is adapted from ESP-NODE-2RDM by ThinhCNTT22, with changes for the N8 module (8 MB flash, PSRAM disabled, 8 MB partition table, port LEDs on GPIO5/6).</p>
+<p>"Ghostlight Node" has not been trademark-cleared. Art-Net is a trademark of Artistic Licence Engineering Ltd; ESP32 of Espressif Systems; W5500 of WIZnet. Names are used only to describe compatibility.</p>
+<h2 id="docs-index">Documentation</h2><p>Full documentation, rendered from the repository.</p><h3>Wiki</h3><ul class="doclist doc-index"><li><a href="ghostlight-node/wiki-home.html">Wiki home</a></li><li><a href="ghostlight-node/getting-started.html">Getting Started</a></li><li><a href="ghostlight-node/hardware-overview.html">Hardware Overview</a></li><li><a href="ghostlight-node/power.html">Power</a></li><li><a href="ghostlight-node/pin-map.html">Pin Map</a></li><li><a href="ghostlight-node/connectors.html">Connectors</a></li><li><a href="ghostlight-node/dmx-ports.html">DMX Ports</a></li><li><a href="ghostlight-node/dmx-wiring.html">DMX Wiring</a></li><li><a href="ghostlight-node/ethernet-and-poe.html">Ethernet and PoE</a></li><li><a href="ghostlight-node/ordering-guide.html">Ordering Guide</a></li><li><a href="ghostlight-node/bill-of-materials.html">Bill of Materials</a></li><li><a href="ghostlight-node/assembly-guide.html">Assembly Guide</a></li><li><a href="ghostlight-node/bring-up-checklist.html">Bring-up Checklist</a></li><li><a href="ghostlight-node/firmware.html">Firmware</a></li><li><a href="ghostlight-node/using-the-node.html">Using the Node</a></li><li><a href="ghostlight-node/troubleshooting.html">Troubleshooting</a></li><li><a href="ghostlight-node/known-issues.html">Known Issues</a></li><li><a href="ghostlight-node/faq.html">FAQ</a></li><li><a href="ghostlight-node/glossary.html">Glossary</a></li><li><a href="ghostlight-node/roadmap.html">Roadmap</a></li><li><a href="ghostlight-node/contributing.html">Contributing</a></li></ul><h3>Reference docs</h3><ul class="doclist doc-index"><li><a href="ghostlight-node/01-overview-and-specifications.html">1. Overview and specifications</a></li><li><a href="ghostlight-node/02-architecture-and-power.html">2. Architecture and power tree</a></li><li><a href="ghostlight-node/03-pinout-and-connectors.html">3. Pin map and connectors</a></li><li><a href="ghostlight-node/04-ethernet-and-poe.html">4. Ethernet and PoE</a></li><li><a href="ghostlight-node/05-dmx-ports.html">5. DMX / RS-485 ports</a></li><li><a href="ghostlight-node/06-usb-programming-debug.html">6. USB, programming and debug</a></li><li><a href="ghostlight-node/07-bom-and-sourcing.html">7. Bill of materials and sourcing</a></li><li><a href="ghostlight-node/08-ordering-guide.html">8. Ordering guide</a></li><li><a href="ghostlight-node/09-assembly-guide.html">9. Assembly guide (hand assembly)</a></li><li><a href="ghostlight-node/10-bring-up-and-test.html">10. Bring-up and test plan</a></li><li><a href="ghostlight-node/11-known-issues-and-verification-status.html">11. Known issues and verification status</a></li><li><a href="ghostlight-node/12-pcb-design-notes.html">12. PCB design notes</a></li><li><a href="ghostlight-node/13-firmware-integration.html">13. Firmware integration</a></li><li><a href="ghostlight-node/14-regenerating-the-design.html">14. Regenerating the design</a></li><li><a href="ghostlight-node/15-roadmap.html">15. Roadmap and ideas for rev2</a></li></ul><h3>Firmware (upstream ESP-NODE-2RDM)</h3><ul class="doclist doc-index"><li><a href="ghostlight-node/firmware-overview.html">Firmware overview</a></li><li><a href="ghostlight-node/component-dmx-handler.html">DMX handler component</a></li><li><a href="ghostlight-node/component-network-manager.html">Network manager component</a></li></ul>
+  </article>
+</div>
+
+<footer>Open-source hardware and firmware by <a href="https://github.com/DefeatedWarrior">DefeatedWarrior</a>. Documentation pages are rendered from each project's repository.</footer>
+</body>
+</html>

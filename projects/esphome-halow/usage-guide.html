@@ -1,0 +1,818 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Usage guide · esphome-halow</title>
+<meta name="description" content="Usage guide: documentation for esphome-halow">
+<link rel="stylesheet" href="../../assets/style.css">
+
+</head>
+<body>
+<header class="site-header"><div class="in">
+  <a class="brand" href="../../index.html"><span class="bulb"></span>DefeatedWarrior</a>
+  <nav>
+    <a href="../../index.html#projects">Projects</a><a href="../../docs.html">Docs</a><a href="https://github.com/DefeatedWarrior">GitHub</a>
+    <form class="search" action="../../search.html" method="get" role="search"><input type="search" name="q" placeholder="Search docs…" aria-label="Search docs"></form>
+  </nav>
+</div></header>
+
+<div class="page">
+  <aside class="toc docs-nav"><a class="back" href="../../index.html#projects">← All projects</a>
+<a class="proj" href="../esphome-halow.html">esphome-halow</a>
+<h4>Guides</h4>
+<a class="cur" href="usage-guide.html">Usage guide</a>
+<div class="sub"><a href="#why-halow-over-lora">Why HaLow over LoRa?</a><a href="#status">Status</a><a href="#hardware">Hardware</a><a href="#quick-start-home-assistant-esphome-builder">Quick start (Home Assistant ESPHome Builder)</a><a href="#access-point-setup-required">Access Point Setup (Required)</a><a href="#configuration">Configuration</a><a href="#troubleshooting">Troubleshooting</a><a href="#known-limitations">Known Limitations</a><a href="#how-it-works">How it works</a><a href="#documentation">Documentation</a><a href="#dependencies">Dependencies</a><a href="#references">References</a><a href="#credits">Credits</a><a href="#license">License</a></div>
+<a href="hardware.html">Hardware</a>
+<a href="development.html">Development</a>
+<h4>Internals</h4>
+<a href="architecture.html">Architecture</a>
+<a href="esphome-compatibility.html">ESPHome compatibility</a>
+<a href="halow-notes.html">Engineering Notes - ESPHome Wi-Fi HaLow Component</a>
+<a href="patches.html">Patches against upstream</a></aside>
+  <article class="doc">
+    <div class="crumbs"><a href="../../index.html">Home</a> / <a href="../esphome-halow.html">esphome-halow</a> / Guides</div>
+    <h1>Usage guide</h1>
+    
+    <div class="md"><p>ESPHome external component for <strong>Wi-Fi HaLow</strong> (IEEE 802.11ah) using the <a href="https://www.morsemicro.com/chips/" target="_blank" rel="noopener">Morse Micro MM6108</a>. It replaces <code>wifi:</code> with <code>halow:</code>: configure the SSID, password and region in YAML, and the device joins a HaLow access point with full IP networking, so the Home Assistant API, OTA updates, mDNS and MQTT all work over sub-1 GHz radio with up to ~1 km range.</p>
+<blockquote>
+<p><strong>This is a fork</strong> of <a href="https://github.com/sweitzja/esphome-halow" target="_blank" rel="noopener">sweitzja/esphome-halow</a>. It makes the component build and run on <strong>ESPHome 2026.x</strong> (the native ESP-IDF toolchain used by the Home Assistant ESPHome Builder) and fixes bugs found in review, including Home Assistant connections being dropped on 2026.x. Every change is listed with its reasoning in <a href="patches.html">PATCHES.md</a>. The state before the review fixes is kept on the <a href="https://github.com/DefeatedWarrior/esphome-halow/tree/pre-improvements" target="_blank" rel="noopener"><code>pre-improvements</code></a> branch.</p>
+</blockquote>
+<h3 id="why-halow-over-lora">Why HaLow over LoRa?</h3>
+<p>HaLow uses standard IP networking: TCP, UDP, DHCP, mDNS, MQTT and the ESPHome API all work natively, with no protocol translation, gateway bridges or TTN accounts. A HaLow device is just another IP device on your network that Home Assistant sees directly, OTA updates work over the same link, and bidirectional control is fast (~7 ms). LoRa still wins on raw range (10-15 km vs ~1 km) and power for simple one-way sensors; for anything that needs reliable two-way communication, HaLow is much cleaner.</p>
+<h2 id="status">Status</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th></th>
+<th>Original component</th>
+<th>This fork</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ESPHome</td>
+<td>before 2026.x (PlatformIO toolchain)</td>
+<td><strong>2026.9.1</strong> (native ESP-IDF 5.5.5)</td>
+</tr>
+<tr>
+<td>Builds, boots MM6108, joins WPA3-SAE AP, DHCP, mDNS</td>
+<td>Tested</td>
+<td>Tested</td>
+</tr>
+<tr>
+<td>Home Assistant API, OTA over HaLow, reconnect after range loss / AP restart, 20-min soak</td>
+<td>Tested</td>
+<td>Fixed for 2026.x and compile-verified; <strong>not yet re-tested on hardware</strong></td>
+</tr>
+</tbody>
+</table></div>
+<p>Details: <a href="development.html#test-history">docs/DEVELOPMENT.md</a>.</p>
+<h2 id="hardware">Hardware</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Part</th>
+<th>Status</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="https://www.seeedstudio.com/Wio-WM6180-Wi-Fi-HaLow-Module-for-XIAO-p-6395.html" target="_blank" rel="noopener">Seeed Wio-WM6180 HaLow module for XIAO</a></td>
+<td>Tested</td>
+<td>MM6108 (MF16858 module); default pins match</td>
+</tr>
+<tr>
+<td>Seeed XIAO ESP32-S3</td>
+<td>Tested</td>
+<td>Other ESP32-S3 boards should work with <code>*_pin</code> options</td>
+</tr>
+<tr>
+<td>ESP32-C3 / C6 / P4</td>
+<td>Untested</td>
+<td>The MM-IoT-SDK ships libraries for these</td>
+</tr>
+<tr>
+<td><a href="https://www.gl-inet.com/products/halowlink2/" target="_blank" rel="noopener">GL-iNet HaLowLink 2</a> access point</td>
+<td>Tested</td>
+<td>Needs bridging to your LAN, see <a href="#access-point-setup-required">Access Point Setup</a></td>
+</tr>
+<tr>
+<td>Other 802.11ah APs</td>
+<td>Should work</td>
+<td>WPA3-SAE, OWE or open</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Power:</strong> the HaLow module's transmit amplifier runs from the <strong>5 V</strong> pin, which on a XIAO is the USB supply. It draws a surge when the radio powers up at "Connecting". Use a good USB cable and port or a powered hub; a weak 5 V supply shows up as the board resetting at that moment (see <a href="#troubleshooting">Troubleshooting</a>).</p>
+<p>Default pins (Seeed XIAO ESP32-S3 + Wio-WM6180):</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Function</th>
+<th>GPIO</th>
+<th>XIAO pin</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SPI SCK / MISO / MOSI</td>
+<td>7 / 8 / 9</td>
+<td>D8 / D9 / D10</td>
+</tr>
+<tr>
+<td>SPI CS</td>
+<td>4</td>
+<td>D3</td>
+</tr>
+<tr>
+<td>SPI IRQ</td>
+<td>3</td>
+<td>D2</td>
+</tr>
+<tr>
+<td>RESET_N</td>
+<td>1</td>
+<td>D0</td>
+</tr>
+<tr>
+<td>WAKE</td>
+<td>2</td>
+<td>D1</td>
+</tr>
+<tr>
+<td>BUSY</td>
+<td>5</td>
+<td>D4</td>
+</tr>
+</tbody>
+</table></div>
+<p>More in <a href="hardware.html">docs/HARDWARE.md</a>.</p>
+<h2 id="quick-start-home-assistant-esphome-builder">Quick start (Home Assistant ESPHome Builder)</h2>
+<ol>
+<li>Set up your access point to bridge HaLow onto your LAN: <a href="#access-point-setup-required">Access Point Setup</a>.</li>
+<li>Add your HaLow network to the builder's <strong>Secrets</strong>:
+   <code>yaml
+   halow_ssid: "your-halow-ssid"
+   halow_password: "your-halow-password"</code></li>
+<li>Create a device with this YAML (adjust the name and <code>country_code</code>):
+   ```yaml
+   esphome:
+     name: halow-sensor
+     friendly_name: HaLow Sensor</li>
+</ol>
+<p>esp32:
+     board: seeed_xiao_esp32s3
+     framework:
+       type: esp-idf</p>
+<p>external_components:
+     - source: github://DefeatedWarrior/esphome-halow
+       components: [halow]</p>
+<p>halow:                       # replaces wifi:
+     ssid: !secret halow_ssid
+     password: !secret halow_password
+     country_code: "US"         # required; must match your region and AP
+     # use_address: 192.168.1.86  # device IP, if your HaLow network is a separate subnet
+     rssi:
+       name: "HaLow RSSI"
+     link_quality:
+       name: "HaLow Link Quality"
+     ip_address:
+       name: "HaLow IP"</p>
+<p>logger:
+   api:
+   ota:
+     - platform: esphome
+   <code>``
+4. If your HaLow network is a **separate subnet** from Home Assistant (the AP routes rather than bridges), uncomment</code>use_address` and set it to the device's IP, ideally reserved on the AP. The Device Builder finds devices by mDNS name, which doesn't cross subnets; without it, wireless logs and OTA report "could not be resolved". Home Assistant also needs a route to that subnet.
+5. Install over USB the first time. The first compile also downloads the Morse Micro SDK (about 50 MB), pinned to the tested version.</p>
+<p><a href="https://github.com/DefeatedWarrior/esphome-halow/blob/main/example.yaml" target="_blank" rel="noopener">example.yaml</a> has every option and sensor.</p>
+<h2 id="access-point-setup-required">Access Point Setup (Required)</h2>
+<p>The HaLowLink 2 <strong>must be in AP mode</strong> and configured for <strong>bridging</strong> so that Home Assistant
+and other LAN devices can reach HaLow devices. Without this setup, the ESP32 will connect
+to the HaLow AP but will not be reachable from your network — HA won't be able to discover
+or communicate with the device.</p>
+<ol>
+<li>Set the HaLowLink 2 to <strong>AP mode</strong> using the mode button or web UI</li>
+<li>Connect your LAN cable to the HaLowLink 2's <strong>WAN port</strong> (not LAN — the wizard bridges WAN↔HaLow)</li>
+<li>Access the web UI at <code>https://&lt;halowlink-ip&gt;</code> (check your router's DHCP leases for the IP)</li>
+<li>Go to <strong>Wizard</strong> and select <strong>"HaLow devices get IP on your existing router's network"</strong></li>
+<li>SSH in and disable masquerade:
+   <code>bash
+   ssh root@&lt;halowlink-ip&gt;   # password is on the device label
+   uci set firewall.wlan.masq=0
+   uci commit firewall
+   /etc/init.d/firewall restart</code></li>
+</ol>
+<p><strong>Important</strong>: Step 5 is critical. Even in bridge mode, the HaLowLink 2 enables NAT (masquerade)
+on the HaLow interface by default. Without disabling it, HaLow devices can reach the internet
+but nothing on your LAN can reach them — no ping, no API, no OTA, no HA discovery.</p>
+<h2 id="configuration">Configuration</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Type</th>
+<th>Default</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>ssid</code></td>
+<td>string</td>
+<td><strong>required</strong></td>
+<td>HaLow AP SSID (1-32 characters)</td>
+</tr>
+<tr>
+<td><code>password</code></td>
+<td>string</td>
+<td><em>(empty)</em></td>
+<td>Passphrase, up to 100 characters. Required for <code>SAE</code></td>
+</tr>
+<tr>
+<td><code>country_code</code></td>
+<td>string</td>
+<td><strong>required</strong></td>
+<td>Regulatory domain: <code>AU</code>, <code>CA</code>, <code>EU</code>, <code>GB</code>, <code>IN</code>, <code>JP</code>, <code>KR</code>, <code>NZ</code> or <code>US</code>. Must match the AP</td>
+</tr>
+<tr>
+<td><code>security</code></td>
+<td>enum</td>
+<td><code>SAE</code></td>
+<td>Security type: <code>SAE</code> (WPA3), <code>OWE</code>, or <code>OPEN</code></td>
+</tr>
+<tr>
+<td><code>type</code></td>
+<td>enum</td>
+<td><code>MM6108</code></td>
+<td>Chip type. Only <code>MM6108</code> is supported</td>
+</tr>
+<tr>
+<td><code>mode</code></td>
+<td>enum</td>
+<td><code>STATION</code></td>
+<td>Operating mode. Only <code>STATION</code> is supported</td>
+</tr>
+<tr>
+<td><code>bcf_file</code></td>
+<td>string</td>
+<td><code>bcf_mf16858.mbin</code></td>
+<td>Board configuration file; checked against the SDK at compile time</td>
+</tr>
+<tr>
+<td><code>sub_bands</code></td>
+<td>bool</td>
+<td><code>false</code></td>
+<td><code>false</code> = 8 MHz max throughput, <code>true</code> = 1-2 MHz max range</td>
+</tr>
+<tr>
+<td><code>max_tx_power</code></td>
+<td>int</td>
+<td><em>(regulatory max)</em></td>
+<td>Cap TX power, 1-30 dBm. Can only lower power, never exceed the regulatory limit</td>
+</tr>
+<tr>
+<td><code>use_address</code></td>
+<td>string</td>
+<td>static IP, else <code>&lt;name&gt;.local</code></td>
+<td>Address the Device Builder / CLI uses for wireless logs and OTA. Set it to the device's IP when mDNS can't reach it, e.g. when the HaLow network is a separate subnet</td>
+</tr>
+<tr>
+<td><code>manual_ip</code></td>
+<td>schema</td>
+<td><em>(DHCP)</em></td>
+<td>Static IP config (static_ip, gateway, subnet, dns1, dns2). Set <code>dns1</code> if the device needs name resolution (e.g. SNTP, HTTP)</td>
+</tr>
+<tr>
+<td><code>mm_iot_sdk_path</code></td>
+<td>string</td>
+<td><code>~/.esphome/mm-iot-esp32</code></td>
+<td>Where the MM-IoT-SDK is downloaded / found</td>
+</tr>
+<tr>
+<td><code>clk_pin</code></td>
+<td>int</td>
+<td><code>7</code></td>
+<td>SPI clock GPIO</td>
+</tr>
+<tr>
+<td><code>mosi_pin</code></td>
+<td>int</td>
+<td><code>9</code></td>
+<td>SPI MOSI GPIO</td>
+</tr>
+<tr>
+<td><code>miso_pin</code></td>
+<td>int</td>
+<td><code>8</code></td>
+<td>SPI MISO GPIO</td>
+</tr>
+<tr>
+<td><code>cs_pin</code></td>
+<td>int</td>
+<td><code>4</code></td>
+<td>SPI chip select GPIO</td>
+</tr>
+<tr>
+<td><code>irq_pin</code></td>
+<td>int</td>
+<td><code>3</code></td>
+<td>SPI interrupt GPIO</td>
+</tr>
+<tr>
+<td><code>reset_pin</code></td>
+<td>int</td>
+<td><code>1</code></td>
+<td>Module reset GPIO (active low)</td>
+</tr>
+<tr>
+<td><code>wake_pin</code></td>
+<td>int</td>
+<td><code>2</code></td>
+<td>Module wake GPIO</td>
+</tr>
+<tr>
+<td><code>busy_pin</code></td>
+<td>int</td>
+<td><code>5</code></td>
+<td>Module busy GPIO</td>
+</tr>
+</tbody>
+</table></div>
+<p>Pins must be distinct ESP32-S3 GPIOs (0-48).</p>
+<h3 id="sensors">Sensors</h3>
+<p>All sensors are optional. Add only the ones you need to your YAML. All sensors
+accept the standard ESPHome sensor configuration options (<code>name</code>, <code>id</code>, <code>filters</code>,
+<code>on_value</code>, etc.). Sensors update every 10 seconds while connected.</p>
+<h4 id="signal-sensors">Signal Sensors</h4>
+<h5 id="rssi"><code>rssi</code></h5>
+<p><strong>Type</strong>: Numeric sensor (dBm) | <strong>Device class</strong>: <code>signal_strength</code></p>
+<p>Received Signal Strength Indicator — measures signal power from the AP.</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>RSSI Range</th>
+<th>Signal Quality</th>
+<th>Typical Scenario</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>-20 to -40 dBm</td>
+<td>Excellent</td>
+<td>Same room as AP, antenna tight</td>
+</tr>
+<tr>
+<td>-40 to -60 dBm</td>
+<td>Good</td>
+<td>Adjacent room, 10-50m</td>
+</tr>
+<tr>
+<td>-60 to -75 dBm</td>
+<td>Fair</td>
+<td>Through walls, 50-200m</td>
+</tr>
+<tr>
+<td>-75 to -85 dBm</td>
+<td>Weak</td>
+<td>Edge of range, packet loss likely</td>
+</tr>
+<tr>
+<td>Below -85 dBm</td>
+<td>Critical</td>
+<td>Connection will drop</td>
+</tr>
+</tbody>
+</table></div>
+<pre><code class="language-yaml">rssi:
+  name: &quot;HaLow RSSI&quot;
+</code></pre>
+<h5 id="link_quality"><code>link_quality</code></h5>
+<p><strong>Type</strong>: Text sensor</p>
+<p>Human-friendly summary of the radio link, derived from MCS and TX success rate.
+This is the single sensor most users should monitor — it combines the raw radio
+metrics into a plain-English assessment.</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Value</th>
+<th>MCS</th>
+<th>TX Success Rate</th>
+<th>What it means</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Excellent</strong></td>
+<td>5-7</td>
+<td>&gt;95%</td>
+<td>Full speed, strong signal. Best throughput.</td>
+</tr>
+<tr>
+<td><strong>Good</strong></td>
+<td>3-4</td>
+<td>&gt;90%</td>
+<td>Moderate speed, reliable. Normal operation.</td>
+</tr>
+<tr>
+<td><strong>Fair</strong></td>
+<td>1-2</td>
+<td>&gt;80%</td>
+<td>Reduced speed but usable. Some retransmissions.</td>
+</tr>
+<tr>
+<td><strong>Poor</strong></td>
+<td>0</td>
+<td>&gt;50%</td>
+<td>Minimum speed, marginal link. Expect latency spikes.</td>
+</tr>
+<tr>
+<td><strong>Critical</strong></td>
+<td>any</td>
+<td>&lt;50%</td>
+<td>Severe packet loss. Connection at risk of dropping.</td>
+</tr>
+</tbody>
+</table></div>
+<pre><code class="language-yaml">link_quality:
+  name: &quot;HaLow Link Quality&quot;
+</code></pre>
+<h4 id="radio-adaptation-sensors">Radio Adaptation Sensors</h4>
+<p>The HaLow radio <strong>automatically adapts</strong> its modulation and coding in real time based
+on channel conditions — similar to how LTE switches between bars of signal. These
+sensors let you observe the adaptation.</p>
+<h5 id="mcs"><code>mcs</code></h5>
+<p><strong>Type</strong>: Numeric sensor (0-7)</p>
+<p>Modulation and Coding Scheme — how the radio trades speed for reliability.
+The equivalent of LoRa's spreading factor, but changed automatically per-frame.</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>MCS</th>
+<th>Modulation</th>
+<th>Approx Data Rate (8 MHz)</th>
+<th>Use Case</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>7</td>
+<td>64-QAM</td>
+<td>32.5 Mbps</td>
+<td>Strong signal, max throughput</td>
+</tr>
+<tr>
+<td>6</td>
+<td>64-QAM</td>
+<td>26 Mbps</td>
+<td>Strong signal</td>
+</tr>
+<tr>
+<td>5</td>
+<td>16-QAM</td>
+<td>19.5 Mbps</td>
+<td>Good signal</td>
+</tr>
+<tr>
+<td>4</td>
+<td>16-QAM</td>
+<td>13 Mbps</td>
+<td>Moderate signal</td>
+</tr>
+<tr>
+<td>3</td>
+<td>QPSK</td>
+<td>9.75 Mbps</td>
+<td>Moderate signal</td>
+</tr>
+<tr>
+<td>2</td>
+<td>QPSK</td>
+<td>6.5 Mbps</td>
+<td>Weak signal</td>
+</tr>
+<tr>
+<td>1</td>
+<td>BPSK</td>
+<td>3.25 Mbps</td>
+<td>Weak signal</td>
+</tr>
+<tr>
+<td>0</td>
+<td>BPSK</td>
+<td>1.625 Mbps</td>
+<td>Weakest signal, max range</td>
+</tr>
+</tbody>
+</table></div>
+<p>The rate controller probes upward conservatively (one MCS step every ~10s) and drops
+instantly on packet loss. During testing, we observed MCS climb from 0 back to 7 over
+approximately 90 seconds after restoring a good antenna connection.</p>
+<pre><code class="language-yaml">mcs:
+  name: &quot;HaLow MCS&quot;
+</code></pre>
+<h5 id="bandwidth"><code>bandwidth</code></h5>
+<p><strong>Type</strong>: Numeric sensor (MHz)</p>
+<p>Channel width the radio is currently using. With <code>sub_bands: false</code> (default), this
+stays at the full operating bandwidth negotiated with the AP (typically 8 MHz).
+With <code>sub_bands: true</code>, the radio may drop to 1, 2, or 4 MHz for better sensitivity
+at extreme range.</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Bandwidth</th>
+<th>Relative Throughput</th>
+<th>Relative Range</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>8 MHz</td>
+<td>Highest</td>
+<td>Shortest</td>
+</tr>
+<tr>
+<td>4 MHz</td>
+<td>~50%</td>
+<td>~1.4x</td>
+</tr>
+<tr>
+<td>2 MHz</td>
+<td>~25%</td>
+<td>~2x</td>
+</tr>
+<tr>
+<td>1 MHz</td>
+<td>~12.5%</td>
+<td>~2.8x</td>
+</tr>
+</tbody>
+</table></div>
+<pre><code class="language-yaml">bandwidth:
+  name: &quot;HaLow Bandwidth&quot;
+</code></pre>
+<h5 id="tx_success_rate"><code>tx_success_rate</code></h5>
+<p><strong>Type</strong>: Numeric sensor (%)</p>
+<p>Percentage of frames delivered to the AP without retransmission in the last update
+period (10 seconds). This is calculated from delta-based tracking of the MM6108's
+rate control statistics — it shows current performance, not lifetime average.</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Success Rate</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>95-100%</td>
+<td>Clean channel, no interference</td>
+</tr>
+<tr>
+<td>80-95%</td>
+<td>Some retransmissions, still reliable</td>
+</tr>
+<tr>
+<td>50-80%</td>
+<td>Significant packet loss, link degrading</td>
+</tr>
+<tr>
+<td>Below 50%</td>
+<td>Severe loss, connection at risk</td>
+</tr>
+</tbody>
+</table></div>
+<pre><code class="language-yaml">tx_success_rate:
+  name: &quot;HaLow TX Success Rate&quot;
+</code></pre>
+<h4 id="traffic-sensors">Traffic Sensors</h4>
+<h5 id="tx_pps-rx_pps"><code>tx_pps</code> / <code>rx_pps</code></h5>
+<p><strong>Type</strong>: Numeric sensor (packets per second)</p>
+<p>Transmit and receive packet rates over the HaLow link. Useful for HA dashboard
+charts showing traffic patterns. Typical values with HA connected:</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Condition</th>
+<th>TX PPS</th>
+<th>RX PPS</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Idle (HA connected)</td>
+<td>1-3</td>
+<td>15-20</td>
+</tr>
+<tr>
+<td>Sensor updates</td>
+<td>3-5</td>
+<td>20-30</td>
+</tr>
+<tr>
+<td>OTA upload</td>
+<td>50-100</td>
+<td>10-20</td>
+</tr>
+</tbody>
+</table></div>
+<pre><code class="language-yaml">tx_pps:
+  name: &quot;HaLow TX Rate&quot;
+rx_pps:
+  name: &quot;HaLow RX Rate&quot;
+</code></pre>
+<h5 id="tx_kbps-rx_kbps"><code>tx_kbps</code> / <code>rx_kbps</code></h5>
+<p><strong>Type</strong>: Numeric sensor (kilobits per second)</p>
+<p>Throughput sensors measuring actual data transferred over the HaLow link.
+TX bytes are counted at the LWIP link-output layer; RX bytes are counted
+via a wrapped <code>tcpip_input</code> hook.</p>
+<pre><code class="language-yaml">tx_kbps:
+  name: &quot;HaLow TX Throughput&quot;
+rx_kbps:
+  name: &quot;HaLow RX Throughput&quot;
+</code></pre>
+<h4 id="diagnostic-sensors">Diagnostic Sensors</h4>
+<h5 id="noise_floor"><code>noise_floor</code></h5>
+<p><strong>Type</strong>: Numeric sensor (dBm)</p>
+<p>Background noise level measured during the last channel scan. Updated each time the
+<code>scan_channel</code> button is pressed. Use this to identify interference on your channel.</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Noise Floor</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>-90 to -95</td>
+<td>Clean — no interference</td>
+</tr>
+<tr>
+<td>-80 to -85</td>
+<td>Light interference</td>
+</tr>
+<tr>
+<td>-70 to -75</td>
+<td>Moderate — consider changing AP channel</td>
+</tr>
+<tr>
+<td>-60 or higher</td>
+<td>Heavy interference — change channel immediately</td>
+</tr>
+</tbody>
+</table></div>
+<pre><code class="language-yaml">noise_floor:
+  name: &quot;HaLow Noise Floor&quot;
+</code></pre>
+<h5 id="tx_frames_dropped-rx_frames_dropped"><code>tx_frames_dropped</code> / <code>rx_frames_dropped</code></h5>
+<p><strong>Type</strong>: Numeric sensor (total increasing)</p>
+<p>Counts of frames dropped due to TX or RX queue overflow in the UMAC. Non-zero values
+indicate the radio can't keep up — usually caused by sustained interference or
+extremely high traffic.</p>
+<h5 id="ccmp_failures"><code>ccmp_failures</code></h5>
+<p><strong>Type</strong>: Numeric sensor (total increasing)</p>
+<p>Count of CCMP (AES encryption) decryption failures. Non-zero values indicate
+bit errors from interference corrupting encrypted frames.</p>
+<h5 id="hw_restarts"><code>hw_restarts</code></h5>
+<p><strong>Type</strong>: Numeric sensor (total increasing)</p>
+<p>Count of MM6108 hardware restart events. Should remain at 0 during normal operation.
+Non-zero indicates severe issues (firmware crash, SPI failure, or extreme interference).</p>
+<h4 id="channel-scan">Channel Scan</h4>
+<h5 id="scan_channel"><code>scan_channel</code></h5>
+<p><strong>Type</strong>: Button</p>
+<p>Triggers an on-demand channel scan. The MM6108 scans all available channels and
+reports every AP it finds. Results are published to the <code>scan_results</code> text sensor
+and the <code>noise_floor</code> sensor is updated from the scan data.</p>
+<h5 id="scan_results"><code>scan_results</code></h5>
+<p><strong>Type</strong>: Text sensor (JSON)</p>
+<p>Compact JSON array of the APs found during the last channel scan, strongest first.
+Home Assistant limits text sensor states to 255 characters, so only as many whole
+entries as fit are included (typically three or four); every result is also written
+to the debug log.</p>
+<pre><code class="language-json">[{&quot;ssid&quot;:&quot;my-ap&quot;,&quot;rssi&quot;:-41,&quot;noise&quot;:-92,&quot;mhz&quot;:924.0,&quot;bw&quot;:8}]
+</code></pre>
+<p>Fields: <code>ssid</code>, <code>rssi</code> (dBm), <code>noise</code> (noise floor in dBm),
+<code>mhz</code> (center frequency in MHz), <code>bw</code> (bandwidth in MHz).</p>
+<p>The <code>noise_floor</code> sensor uses the reading from the channel of the AP you're
+connected to, or the quietest channel if your AP wasn't seen.</p>
+<pre><code class="language-yaml">scan_channel:
+  name: &quot;HaLow Channel Scan&quot;
+scan_results:
+  name: &quot;HaLow Scan Results&quot;
+</code></pre>
+<h4 id="network-info-sensors">Network Info Sensors</h4>
+<h5 id="ip_address"><code>ip_address</code></h5>
+<p><strong>Type</strong>: Text sensor | Shows the device's current IPv4 address (DHCP or static).</p>
+<h5 id="gateway_address"><code>gateway_address</code></h5>
+<p><strong>Type</strong>: Text sensor | Shows the gateway/router IP address.</p>
+<h5 id="subnet_mask"><code>subnet_mask</code></h5>
+<p><strong>Type</strong>: Text sensor | Shows the network subnet mask.</p>
+<h5 id="connected_ssid"><code>connected_ssid</code></h5>
+<p><strong>Type</strong>: Text sensor | Shows the SSID of the connected HaLow AP. Published once on connect.</p>
+<h5 id="bssid"><code>bssid</code></h5>
+<p><strong>Type</strong>: Text sensor | Shows the MAC address of the connected AP (BSSID).</p>
+<h5 id="mac_address"><code>mac_address</code></h5>
+<p><strong>Type</strong>: Text sensor | Shows the MM6108's own MAC address. Published once on connect.</p>
+<h5 id="firmware_version"><code>firmware_version</code></h5>
+<p><strong>Type</strong>: Text sensor | Shows the MM6108 firmware version (e.g., "1.17.6"). Published once on connect.</p>
+<pre><code class="language-yaml">ip_address:
+  name: &quot;HaLow IP&quot;
+gateway_address:
+  name: &quot;HaLow Gateway&quot;
+mac_address:
+  name: &quot;HaLow MAC&quot;
+firmware_version:
+  name: &quot;HaLow FW Version&quot;
+</code></pre>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<p><strong>The board resets at "Connecting to '...'"</strong> — the log stops right after <code>Connecting to '&lt;ssid&gt;' (SAE)...</code>, the USB serial port drops, and the next boot reports a power-on reset (<code>debug:</code> component: <em>Reset Reason: Power On</em>). <code>mmwlan_sta_enable()</code> powers up the MM6108's RF section at that moment; if the 3.3 V rail collapses the ESP32 cold-boots. This is a power or hardware problem, not firmware: lowering <code>max_tx_power</code> doesn't help because it happens before any transmission. Check the hat is fully seated with no bent pins, the antenna is firmly attached, and try a different USB cable, port or a powered hub. In testing, an electrolytic capacitor across the 5 V rail and GND stopped the resets (mind the polarity: stripe to GND).</p>
+<p><strong>It connects but Home Assistant can't reach it</strong> — the AP is probably routing/NATing the HaLow network instead of bridging it. Follow <a href="#access-point-setup-required">Access Point Setup</a>, including disabling masquerade. You can check from another machine on your LAN with <code>ping &lt;device-ip&gt;</code>.</p>
+<p><strong>"Connect timeout" with no <code>STA state: CONNECTING</code></strong> — the device never found the AP. Check <code>country_code</code> matches the AP's region: the channel plans don't overlap in the way you might expect (for example, a <code>US</code> device won't find an <code>AU</code> AP).</p>
+<p><strong>Device Builder: "All specified devices ['OTA'] could not be resolved"</strong> when opening logs or installing wirelessly. The builder finds devices by mDNS (<code>&lt;name&gt;.local</code>), which doesn't cross subnets. Set <code>use_address: &lt;device IP&gt;</code> under <code>halow:</code>, and give the device a fixed address (a DHCP reservation on the AP, or <code>manual_ip</code>). The machine running Home Assistant must also be able to route to that IP. If you updated from an earlier version of this component and it still says "could not be resolved", click Install once (or edit and save the YAML) to clear ESPHome's old config cache.</p>
+<p><strong>The device reboots every 15 minutes</strong> — that's ESPHome's API <code>reboot_timeout</code>: with no Home Assistant client connected for 15 minutes it restarts. It means HA can't reach the device (see the previous item). While you sort out the network, set <code>api: reboot_timeout: 0s</code> to stop it.</p>
+<p><strong>Changes to this repo don't show up in the Home Assistant ESPHome Builder</strong> — external components are cached for a day. Add <code>refresh: 1min</code> (or <code>always</code>) under the <code>external_components</code> source.</p>
+<p><strong>"halow: could not find is_connected() in ESPHome's network component"</strong> — your ESPHome version restructured the network component and this component needs updating; it refuses to build rather than produce firmware that silently drops API connections.</p>
+<h2 id="known-limitations">Known Limitations</h2>
+<ul>
+<li><strong>Power save disabled</strong> — The MM6108 BUSY pin has a firmware bug (confirmed by Morse Micro). Power save is disabled to ensure reliable bidirectional communication. The radio therefore draws full receive current all the time. Monitor <a href="https://github.com/MorseMicro/firmware_binaries/releases/" target="_blank" rel="noopener">firmware releases</a> for a fix.</li>
+<li><strong>TWT not yet implemented</strong> — Requires working BUSY pin for battery operation. A GPIO-based workaround exists but is not integrated.</li>
+<li><strong>Station mode, MM6108 only</strong> — AP mode and the MM8108 are not implemented; the config rejects them.</li>
+<li><strong>Tested on ESP32-S3 only</strong> — the SDK also supports ESP32-C3, C6 and P4, but this component hasn't been run on them.</li>
+</ul>
+<h2 id="how-it-works">How it works</h2>
+<pre><code>                    SPI (40 MHz)
+ESP32-S3 ◄────────────────────────► MM6108 (HaLow SoC)
+  ├─ ESPHome                          ├─ 802.11ah MAC/PHY
+  ├─ lwIP (via Morse mmipal)          ├─ WPA3-SAE
+  ├─ Home Assistant API               ├─ Sub-1 GHz radio
+  └─ OTA updates                      └─ Firmware loaded over SPI at every boot
+</code></pre>
+<p>At boot the component resets the MM6108, loads its firmware and board configuration (BCF) over SPI, brings up an lwIP interface, and connects as a station. A FreeRTOS timer handles reconnection. At build time it splices HaLow into ESPHome's network status checks so the API, MQTT and OTA treat it as a network interface. Full details: <a href="architecture.html">docs/ARCHITECTURE.md</a>.</p>
+<h2 id="documentation">Documentation</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Document</th>
+<th>For</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><a href="patches.html">PATCHES.md</a></td>
+<td>Every change this fork makes, why, and how it was verified</td>
+</tr>
+<tr>
+<td><a href="architecture.html">docs/ARCHITECTURE.md</a></td>
+<td>How the component works: build steps, tasks, state machine, reconnects, mDNS, sensors</td>
+</tr>
+<tr>
+<td><a href="hardware.html">docs/HARDWARE.md</a></td>
+<td>Pins, power rails, firmware/BCF, failure signatures, reset reasons</td>
+</tr>
+<tr>
+<td><a href="esphome-compatibility.html">docs/ESPHOME_COMPAT.md</a></td>
+<td>ESPHome internals the component depends on, and what to check when ESPHome updates</td>
+</tr>
+<tr>
+<td><a href="development.html">docs/DEVELOPMENT.md</a></td>
+<td>Building, verifying, flashing, logs, branches, test history</td>
+</tr>
+<tr>
+<td><a href="halow-notes.html">docs/HALOW_NOTES.md</a></td>
+<td>The original author's engineering notebook (partly historical)</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="dependencies">Dependencies</h2>
+<p>The <a href="https://github.com/MorseMicro/mm-iot-esp32" target="_blank" rel="noopener">Morse Micro MM-IoT-SDK</a> is downloaded on first compile, pinned to commit <code>96d9bf4</code> (morselib 2.10.4, MM6108 firmware 1.17.6). It provides:</p>
+<ul>
+<li><strong>morselib</strong>: prebuilt WLAN driver and supplicant</li>
+<li><strong>mm_shims</strong>: ESP-IDF hardware layer (SPI, GPIO, FreeRTOS)</li>
+<li><strong>mmipal</strong>: lwIP network interface</li>
+<li><strong>mmutils</strong>, <strong>mmpktmem</strong>, <strong>mmregdb</strong>: utilities, packet memory, regulatory database</li>
+<li><strong>morsefirmware</strong>: MM6108 firmware and board configuration files</li>
+</ul>
+<h2 id="references">References</h2>
+<ul>
+<li><a href="https://github.com/MorseMicro/mm-iot-esp32" target="_blank" rel="noopener">Morse Micro MM-IoT-SDK</a></li>
+<li><a href="https://github.com/Seeed-Studio/mm-iot-esp32" target="_blank" rel="noopener">Seeed MM-IoT-SDK fork</a> (older, used by Seeed's examples)</li>
+<li><a href="https://github.com/MorseMicro/morse-firmware" target="_blank" rel="noopener">Morse Micro morse-firmware</a>: additional BCF files</li>
+<li><a href="https://wiki.seeedstudio.com/getting_started_with_wifi_halow_module_for_xiao/" target="_blank" rel="noopener">Seeed Wiki: Getting Started with Wi-Fi HaLow for XIAO</a></li>
+<li><a href="https://en.wikipedia.org/wiki/IEEE_802.11ah" target="_blank" rel="noopener">IEEE 802.11ah</a></li>
+<li><a href="https://github.com/gtgreenw/Xiao-Halow-to-WiFi-Bridge" target="_blank" rel="noopener">Xiao-Halow-to-WiFi-Bridge</a>: the reconnect approach is modelled on this project</li>
+</ul>
+<h2 id="credits">Credits</h2>
+<p>Original component by <a href="https://github.com/sweitzja/esphome-halow" target="_blank" rel="noopener">sweitzja</a>. ESPHome 2026.x support and review fixes in this fork.</p>
+<h2 id="license">License</h2>
+<p>Apache-2.0. Morse Micro binary libraries are subject to the <a href="https://github.com/Seeed-Studio/mm-iot-esp32/blob/main/LICENSES/LicenseRef-MorseMicroBDL.txt" target="_blank" rel="noopener">Morse Micro BDL</a>.</p></div>
+    <div class="links"><a class="btn small" href="https://github.com/DefeatedWarrior/esphome-halow/blob/main/README.md">View source on GitHub</a></div>
+    <nav class="pn"><span></span><a class="r" href="hardware.html"><small>Next →</small>Hardware</a></nav>
+  </article>
+</div>
+
+<footer>Open-source hardware and firmware by <a href="https://github.com/DefeatedWarrior">DefeatedWarrior</a>. Documentation pages are rendered from each project's repository.</footer>
+</body>
+</html>

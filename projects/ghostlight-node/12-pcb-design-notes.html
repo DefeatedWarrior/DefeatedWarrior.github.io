@@ -1,0 +1,139 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>12. PCB design notes · Ghostlight Node</title>
+<meta name="description" content="12. PCB design notes: documentation for Ghostlight Node">
+<link rel="stylesheet" href="../../assets/style.css">
+
+</head>
+<body>
+<header class="site-header"><div class="in">
+  <a class="brand" href="../../index.html"><span class="bulb"></span>DefeatedWarrior</a>
+  <nav>
+    <a href="../../index.html#projects">Projects</a><a href="../../docs.html">Docs</a><a href="https://github.com/DefeatedWarrior">GitHub</a>
+    <form class="search" action="../../search.html" method="get" role="search"><input type="search" name="q" placeholder="Search docs…" aria-label="Search docs"></form>
+  </nav>
+</div></header>
+
+<div class="page">
+  <aside class="toc docs-nav"><a class="back" href="../../index.html#projects">← All projects</a>
+<a class="proj" href="../ghostlight-node.html">Ghostlight Node</a>
+<h4>Wiki</h4>
+<a href="wiki-home.html">Wiki home</a>
+<a href="getting-started.html">Getting Started</a>
+<a href="hardware-overview.html">Hardware Overview</a>
+<a href="power.html">Power</a>
+<a href="pin-map.html">Pin Map</a>
+<a href="connectors.html">Connectors</a>
+<a href="dmx-ports.html">DMX Ports</a>
+<a href="dmx-wiring.html">DMX Wiring</a>
+<a href="ethernet-and-poe.html">Ethernet and PoE</a>
+<a href="ordering-guide.html">Ordering Guide</a>
+<a href="bill-of-materials.html">Bill of Materials</a>
+<a href="assembly-guide.html">Assembly Guide</a>
+<a href="bring-up-checklist.html">Bring-up Checklist</a>
+<a href="firmware.html">Firmware</a>
+<a href="using-the-node.html">Using the Node</a>
+<a href="troubleshooting.html">Troubleshooting</a>
+<a href="known-issues.html">Known Issues</a>
+<a href="faq.html">FAQ</a>
+<a href="glossary.html">Glossary</a>
+<a href="roadmap.html">Roadmap</a>
+<a href="contributing.html">Contributing</a>
+<h4>Reference docs</h4>
+<a href="01-overview-and-specifications.html">1. Overview and specifications</a>
+<a href="02-architecture-and-power.html">2. Architecture and power tree</a>
+<a href="03-pinout-and-connectors.html">3. Pin map and connectors</a>
+<a href="04-ethernet-and-poe.html">4. Ethernet and PoE</a>
+<a href="05-dmx-ports.html">5. DMX / RS-485 ports</a>
+<a href="06-usb-programming-debug.html">6. USB, programming and debug</a>
+<a href="07-bom-and-sourcing.html">7. Bill of materials and sourcing</a>
+<a href="08-ordering-guide.html">8. Ordering guide</a>
+<a href="09-assembly-guide.html">9. Assembly guide (hand assembly)</a>
+<a href="10-bring-up-and-test.html">10. Bring-up and test plan</a>
+<a href="11-known-issues-and-verification-status.html">11. Known issues and verification status</a>
+<a class="cur" href="12-pcb-design-notes.html">12. PCB design notes</a>
+<div class="sub"><a href="#board">Board</a><a href="#layout-choices">Layout choices</a><a href="#silkscreen">Silkscreen</a><a href="#custom-libraries">Custom libraries</a><a href="#files-kicad-may-regenerate">Files KiCad may regenerate</a></div>
+<a href="13-firmware-integration.html">13. Firmware integration</a>
+<a href="14-regenerating-the-design.html">14. Regenerating the design</a>
+<a href="15-roadmap.html">15. Roadmap and ideas for rev2</a>
+<h4>Firmware (upstream ESP-NODE-2RDM)</h4>
+<a href="firmware-overview.html">Firmware overview</a>
+<a href="component-dmx-handler.html">DMX handler component</a>
+<a href="component-network-manager.html">Network manager component</a></aside>
+  <article class="doc">
+    <div class="crumbs"><a href="../../index.html">Home</a> / <a href="../ghostlight-node.html">Ghostlight Node</a> / Reference docs</div>
+    <h1>12. PCB design notes</h1>
+    
+    <div class="md"><h2 id="board">Board</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Outline</td>
+<td>100 x 100 mm rectangle</td>
+</tr>
+<tr>
+<td>Layers</td>
+<td>2 (F.Cu signals + ground pour, B.Cu signals + ground pour)</td>
+</tr>
+<tr>
+<td>Thickness</td>
+<td>1.6 mm</td>
+</tr>
+<tr>
+<td>Rules used</td>
+<td>clearance 0.15 mm, track 0.2 mm minimum, via 0.5 mm pad with 0.3 mm drill (JLCPCB 2-layer capabilities)</td>
+</tr>
+<tr>
+<td>Mounting</td>
+<td>four M3 holes at (4, 4), (96, 4), (4, 72) and (96, 96) mm</td>
+</tr>
+<tr>
+<td>Antenna</td>
+<td>the ESP32-S3 module is at the top edge with its antenna end toward the edge. A copper keep-out (no tracks or pours) lies under the antenna, visible as a black band at the top of the front photo</td>
+</tr>
+<tr>
+<td>RJ45</td>
+<td>the J1 jack overhangs the board edge by about 0.5 mm</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="layout-choices">Layout choices</h2>
+<ul>
+<li><strong>Placement is by function</strong> and was laid out for hand assembly: the MCU at the top, power and USB on the left, Ethernet at the bottom left, W5500 centred, DMX ports on the right, screw terminals along the bottom edge.</li>
+<li><strong>Terminals along the bottom edge</strong> with the PoE module above them: the first outline was 100 x 80 mm, but the PoE module plus IN and OUT terminals for each port (four 3-position 5.08 mm blocks) did not fit, so the board was grown to a square 100 x 100 mm.</li>
+<li><strong>Routing</strong> was done with Freerouting 1.9.0 and imported back into KiCad, then power nets were widened. The router is non-deterministic: the shipped board is the best of several runs that met all design rules (0 DRC errors, 0 unconnected), not a bit-for-bit reproducible result.</li>
+<li><strong>Ethernet</strong>: TXP / TXN and RXP / RXN pairs about 35-45 mm, not length-matched, adequate for 10/100.</li>
+<li><strong>Power</strong>: the +5V and 5V_EXT nets were widened after routing; ground is a pour on both layers with stitching vias.</li>
+<li><strong>ESD parts</strong>: the USBLC6 is placed next to the USB-C connector; each SM712 TVS sits beside its transceiver, not at the screw terminals, so the A / B traces run to the terminals from there.</li>
+<li><strong>Thermal</strong>: the AMS1117 dissipates (V_in - 3.3 V) x I, about 0.5-0.7 W at 0.5 A. It sits on a copper pour. Watch it during Wi-Fi + Ethernet load.</li>
+</ul>
+<h2 id="silkscreen">Silkscreen</h2>
+<p>Front: reference designators, terminal pin names (B / A / GND), BOOT / RESET / USB-C / 5V IN labels, debug UART pin names, J5 pin names, "120R TERM" next to the termination jumpers, and a title block (GHOSTLIGHT NODE rev1, "Art-Net/sACN &gt; DMX512 x2", "PoE 802.3af / USB-C / RDM", "Open hardware CERN-OHL-P-2.0").</p>
+<p>Back: IN / OUT tags under each DMX terminal (the strip between the PoE module and the terminals fits only one row of front text, so these are on the back), board name, licence and the GPIO map (DMX1, DMX2, W5500, LEDs, BOOT).</p>
+<p>The DMX A / B polarity is intentionally <strong>not</strong> stated as D+ / D- on the silkscreen until it is verified on hardware.</p>
+<h2 id="custom-libraries">Custom libraries</h2>
+<p><code>hardware/kicad/ESPNODE.pretty</code> holds two footprints generated from datasheets:</p>
+<ul>
+<li><code>RJ45_Hanrun_HR871150C</code> (the PoE magjack)</li>
+<li><code>PoE_SDAPO_DP9700</code> (the PoE module pin row and keep-out)</li>
+</ul>
+<p>and <code>ESPNODE.kicad_sym</code> holds the matching symbol for the jack. Project tables <code>fp-lib-table</code> and <code>sym-lib-table</code> reference them with <code>${KIPRJMOD}</code>.</p>
+<h2 id="files-kicad-may-regenerate">Files KiCad may regenerate</h2>
+<p>The board file was generated and finished by scripts (see <a href="14-regenerating-the-design.html">docs/14</a>). If you open it in newer KiCad versions it will be upgraded on save. Use KiCad 7 or later; DRC should be re-run after any edit.</p></div>
+    <div class="links"><a class="btn small" href="https://github.com/DefeatedWarrior/ghostlight-node/blob/main/docs/12-pcb-design-notes.md">View source on GitHub</a></div>
+    <nav class="pn"><a href="11-known-issues-and-verification-status.html"><small>← Previous</small>11. Known issues and verification status</a><a class="r" href="13-firmware-integration.html"><small>Next →</small>13. Firmware integration</a></nav>
+  </article>
+</div>
+
+<footer>Open-source hardware and firmware by <a href="https://github.com/DefeatedWarrior">DefeatedWarrior</a>. Documentation pages are rendered from each project's repository.</footer>
+</body>
+</html>

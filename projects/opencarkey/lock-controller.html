@@ -1,0 +1,313 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Lock Controller · OpenCarKey</title>
+<meta name="description" content="Lock Controller: documentation for OpenCarKey">
+<link rel="stylesheet" href="../../assets/style.css">
+
+</head>
+<body>
+<header class="site-header"><div class="in">
+  <a class="brand" href="../../index.html"><span class="bulb"></span>DefeatedWarrior</a>
+  <nav>
+    <a href="../../index.html#projects">Projects</a><a href="../../docs.html">Docs</a><a href="https://github.com/DefeatedWarrior">GitHub</a>
+    <form class="search" action="../../search.html" method="get" role="search"><input type="search" name="q" placeholder="Search docs…" aria-label="Search docs"></form>
+  </nav>
+</div></header>
+
+<div class="page">
+  <aside class="toc docs-nav"><a class="back" href="../../index.html#projects">← All projects</a>
+<a class="proj" href="../opencarkey.html">OpenCarKey</a>
+<h4>Documentation</h4>
+<a href="architecture.html">Architecture and BLE protocol</a>
+<a class="cur" href="lock-controller.html">Lock Controller</a>
+<div class="sub"><a href="#sections">Sections</a><a href="#config">Config</a><a href="#custom-code-for-locking-unlocking-etc">Custom code for locking, unlocking etc.</a><a href="#other-events">Other events</a><a href="#bluetoothh">bluetooth.h</a><a href="#ble-communication-protocol-v3">Ble communication protocol (V3)</a></div>
+<a href="contributing.html">Contributing</a></aside>
+  <article class="doc">
+    <div class="crumbs"><a href="../../index.html">Home</a> / <a href="../opencarkey.html">OpenCarKey</a> / Documentation</div>
+    <h1>Lock Controller</h1>
+    
+    <div class="md"><h3 id="sections">Sections</h3>
+<p><strong><a href="#config">Config</a></strong><br>
+&emsp;<a href="#device_name">DEVICE_NAME</a><br>
+&emsp;<a href="#password">PASSWORD</a><br>
+&emsp;<a href="#supported_features">SUPPORTED_FEATURES</a><br>
+<strong><a href="#custom-code-for-locking-unlocking-etc">Custom code for locking, unlocking etc.</a></strong><br>
+&emsp;<a href="#locking">Locking</a><br>
+&emsp;<a href="#unlocking">Unlocking</a><br>
+&emsp;<a href="#opening-trunk">Opening Trunk</a><br>
+&emsp;<a href="#starting-engine">Staring Engine</a><br>
+<strong><a href="#other-events">Other Events</a></strong><br>
+&emsp;<a href="#onconnected--ondisconnected">OnConnected &amp; OnDisconnected</a><br>
+<strong><a href="#bluetoothh">bluetooth.h</a></strong><br>
+&emsp;<a href="#onconnected">onConnected</a><br>
+&emsp;<a href="#ondisconnected">onDisconnected</a><br>
+&emsp;<a href="#onlocked">onLocked</a><br>
+&emsp;<a href="#onunlocked">onUnlocked</a><br>
+&emsp;<a href="#ontrunkopened">onTrunkOpened</a><br>
+&emsp;<a href="#onenginestarted">onEngineStarted</a><br>
+&emsp;<a href="#deviceconnected">deviceConnected</a><br>
+&emsp;<a href="#autolocking">autoLocking</a><br>
+&emsp;<a href="#islocked">isLocked</a><br>
+&emsp;<a href="#setupbluetooth">setupBluetooth</a><br>
+&emsp;<a href="#bluetoothloop">bluetoothLoop</a><br>
+<strong><a href="#ble-communication-protocol">Ble communication protocol</a></strong><br></p>
+<h2 id="config">Config</h2>
+<p>Open <code>Firmware/LockController/src/config.h</code>.</p>
+<h3 id="device_name"><code>DEVICE_NAME</code></h3>
+<p>Set this to the name the device should show as during Bluetooth discovery (This is not the name of the vehicle that will be shown in the app, normal Bluetooth will not see this name in plain text)</p>
+<h3 id="password"><code>PASSWORD</code></h3>
+<p>Set this to a unique password (longer passwords are more secure).</p>
+<h3 id="supported_features"><code>SUPPORTED_FEATURES</code></h3>
+<p>With this you can define all the capabilities your vehicle has, so that the appropriate buttons will be shown in the app's interface.
+To define multiple just chain then together using <code>|</code> like <code>Feature::DoorsLock | Feature::TrunkOpen</code>.</p>
+<p>These are available:
+| Feature     | Description                                                                |
+| ----------- | -------------------------------------------------------------------------- |
+| <code>DoorsLock</code> | Button to lock or unlock the vehicle will be shown.                        |
+| <code>TrunkOpen</code> | Button to pop open the trunk will be shown.                                |
+| <code>Engine</code>    | Button to start or stop the engine will be shown.  (Not implemented yet)   |
+| <code>Windows</code>   | Button to roll the windows up or down will be shown. (Not implemented yet) |</p>
+<h2 id="custom-code-for-locking-unlocking-etc">Custom code for locking, unlocking etc.</h2>
+<h3 id="locking">Locking</h3>
+<p>To handle locking you need to assign a function to <code>onLocked</code> in <code>setup()</code> like (in <code>src/main.cpp</code>):</p>
+<pre><code class="language-cpp">void lock(bool proximity)
+{
+  //Your code for locking
+
+  Serial.println(&quot;Locked&quot;);
+}
+
+void setup()
+{
+  // Other code..
+
+  onLocked = lock;
+
+  // Other code..
+}
+</code></pre>
+<h3 id="unlocking">Unlocking</h3>
+<p>To handle unlocking you need to assign a function to <code>onUnlocked</code> in <code>setup()</code> like (in <code>src/main.cpp</code>):</p>
+<pre><code class="language-cpp">void unlock(bool proximity)
+{
+  //Your code for unlocking
+
+  Serial.println(&quot;Unlocked&quot;);
+}
+
+void setup()
+{
+  // Other code..
+
+  onUnlocked = unlock;
+
+  // Other code..
+}
+</code></pre>
+<h3 id="opening-trunk">Opening Trunk</h3>
+<p>To handle trunk opening you need to assign a function to <code>onTrunkOpened</code> in <code>setup()</code> like (in <code>src/main.cpp</code>):</p>
+<pre><code class="language-cpp">void openTrunk()
+{
+  //Your code for opening trunk
+
+  Serial.println(&quot;Trunk Opened&quot;);
+}
+
+void setup()
+{
+  // Other code..
+
+  onTrunkOpened = openTrunk;
+
+  // Other code..
+}
+</code></pre>
+<h3 id="starting-engine">Starting Engine</h3>
+<p>To handle starting of the engine you need to assign a function to <code>onEngineStarted</code> in <code>setup()</code> like (in <code>src/main.cpp</code>):</p>
+<pre><code class="language-cpp">void startEngine()
+{
+  //Your code for staring engine
+
+  Serial.println(&quot;Engine Started&quot;);
+}
+
+void setup()
+{
+  // Other code..
+
+  onEngineStarted = startEngine;
+
+  // Other code..
+}
+</code></pre>
+<h2 id="other-events">Other events</h2>
+<h3 id="onconnected-ondisconnected">OnConnected &amp; OnDisconnected</h3>
+<p>If you want to call custom code when the app connects ot disconnects you can do the same as before for <code>onConnected</code> and <code>onDisconnected</code></p>
+<pre><code class="language-cpp">void connected()
+{
+  Serial.println(&quot;App connected&quot;);
+}
+
+void disconnected()
+{
+
+}
+
+void setup()
+{
+  // Other code..
+
+  onConnected = connected;
+  onDisconnected = disconnected;
+
+  // Other code..
+}
+</code></pre>
+<h2 id="bluetoothh">bluetooth.h</h2>
+<p>Everything you can access from <code>main.cpp</code> (<code>#include "bluetooth.h"</code>)</p>
+<h3 id="onconnected">onConnected</h3>
+<pre><code class="language-cpp">extern void (*onConnected)()
+</code></pre>
+<p>Called when the device is connected (for additional custom actions)</p>
+<h3 id="ondisconnected">onDisconnected</h3>
+<pre><code class="language-cpp">extern void (*onDisconnected)()
+</code></pre>
+<p>Called when the device is disconnected (for additional custom actions)</p>
+<h3 id="onlocked">onLocked</h3>
+<pre><code class="language-cpp">extern void (*onLocked)(bool proximity)
+</code></pre>
+<p>Called when the car gets locked</p>
+<h3 id="onunlocked">onUnlocked</h3>
+<pre><code class="language-cpp">extern void (*onUnlocked)(bool proximity)
+</code></pre>
+<p>Called when the car gets unlocked</p>
+<h3 id="ontrunkopened">onTrunkOpened</h3>
+<pre><code class="language-cpp">extern void (*onTrunkOpened)()
+</code></pre>
+<p>Called when the trunk gets opened</p>
+<h3 id="onenginestarted">onEngineStarted</h3>
+<pre><code class="language-cpp">extern void (*onEngineStarted)()
+</code></pre>
+<p>Called when the engine gets started from the app</p>
+<h3 id="deviceconnected">deviceConnected</h3>
+<pre><code class="language-cpp">extern bool deviceConnected
+</code></pre>
+<p>Is the ESP is connected to the phone</p>
+<h3 id="autolocking">autoLocking</h3>
+<pre><code class="language-cpp">extern bool autoLocking
+</code></pre>
+<p>Is proximity key enabled</p>
+<h3 id="islocked">isLocked</h3>
+<pre><code class="language-cpp">extern bool isLocked
+</code></pre>
+<p>Is the car locked</p>
+<h3 id="setupbluetooth">setupBluetooth</h3>
+<pre><code class="language-cpp">void setupBluetooth()
+</code></pre>
+<p>Sets up bluetooth</p>
+<h3 id="bluetoothloop">bluetoothLoop</h3>
+<pre><code class="language-cpp">void bluetoothLoop()
+</code></pre>
+<p>Loop need for bluetooth to work</p>
+<h2 id="ble-communication-protocol-v3">Ble communication protocol (V3)</h2>
+<p>Communication protocol between ESP and App.</p>
+<h3 id="message-structure-from-clientapp">Message structure (from client/app):</h3>
+<p>32 byte HMAC + 1 byte command (+ optional additional data length + bytes)</p>
+<h3 id="response-structure-from-esp32">Response structure (From ESP32)</h3>
+<p>1 byte command (+ optional additional data length + bytes)</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Message</th>
+<th>Response</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>0x00</code> (GET_VERSION)</td>
+<td><code>0x01 + {Current protocol version str}</code> (VERSION)</td>
+</tr>
+<tr>
+<td>Anything with no/invalid rolling code (HMAC)</td>
+<td><code>0x00</code> (INVALID_HMAC)</td>
+</tr>
+<tr>
+<td><code>0x01</code> (GET_DATA)</td>
+<td><code>0x02</code> (LOCKED) or <code>0x04</code> (UNLOCKED)</td>
+</tr>
+<tr>
+<td><code>0x02</code> (LOCK_DOORS)</td>
+<td><code>0x02</code> (LOCKED)</td>
+</tr>
+<tr>
+<td><code>0x03</code> (UNLOCK_DOORS)</td>
+<td><code>0x04</code> (UNLOCKED)</td>
+</tr>
+<tr>
+<td><code>0x04</code> (OPEN_TRUNK)</td>
+<td>None</td>
+</tr>
+<tr>
+<td><code>0x05</code> (START_ENGINE)</td>
+<td>None</td>
+</tr>
+<tr>
+<td><code>0x06</code> (STOP_ENGINE)</td>
+<td>None</td>
+</tr>
+<tr>
+<td><code>0x07</code> (PROXIMITY_KEY_ON)</td>
+<td>None</td>
+</tr>
+<tr>
+<td><code>0x08</code> (PROXIMITY_KEY_OFF)</td>
+<td>None</td>
+</tr>
+<tr>
+<td><code>0x09 + {Proximity cooldown float in min}</code> (PROXIMITY_COOLDOWN)</td>
+<td>None</td>
+</tr>
+<tr>
+<td><code>0x0A + {Rssi float, Rssi dead zone float}</code> (RSSI_TRIGGER)</td>
+<td>None</td>
+</tr>
+<tr>
+<td><code>0x0B</code> (GET_RSSI)</td>
+<td><code>0x06 + {Rssi float}</code> (RSSI) can take 500ms</td>
+</tr>
+<tr>
+<td><code>0x0C</code> (GET_FEATURES)</td>
+<td><code>0x07 + {int bitmask}</code> (FEATURES)</td>
+</tr>
+</tbody>
+</table></div>
+<p><code>RSSI_TRIGGER</code> (0x0A) sets the <strong>rssi strength</strong> where proximity key will unlock and the <strong>zone</strong> (in rough meters) where nothing will happen. Eg. 5m: After the car was locked you have to get around 5m closer to it to unlock again. This is to prevent rapid locking and unlocking if you are at the exact trigger distance</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Message from ESP</th>
+<th>Description</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>0x03</code> (PROXIMITY_LOCKED)</td>
+<td>Vehicle was locked using proximity key</td>
+</tr>
+<tr>
+<td><code>0x05</code> (PROXIMITY_UNLOCKED)</td>
+<td>Vehicle was unlocked using proximity key</td>
+</tr>
+</tbody>
+</table></div></div>
+    <div class="links"></div>
+    <nav class="pn"><a href="architecture.html"><small>← Previous</small>Architecture and BLE protocol</a><a class="r" href="contributing.html"><small>Next →</small>Contributing</a></nav>
+  </article>
+</div>
+
+<footer>Open-source hardware and firmware by <a href="https://github.com/DefeatedWarrior">DefeatedWarrior</a>. Documentation pages are rendered from each project's repository.</footer>
+</body>
+</html>

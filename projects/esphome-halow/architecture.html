@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Architecture · esphome-halow</title>
+<meta name="description" content="Architecture: documentation for esphome-halow">
+<link rel="stylesheet" href="../../assets/style.css">
+
+</head>
+<body>
+<header class="site-header"><div class="in">
+  <a class="brand" href="../../index.html"><span class="bulb"></span>DefeatedWarrior</a>
+  <nav>
+    <a href="../../index.html#projects">Projects</a><a href="../../docs.html">Docs</a><a href="https://github.com/DefeatedWarrior">GitHub</a>
+    <form class="search" action="../../search.html" method="get" role="search"><input type="search" name="q" placeholder="Search docs…" aria-label="Search docs"></form>
+  </nav>
+</div></header>
+
+<div class="page">
+  <aside class="toc docs-nav"><a class="back" href="../../index.html#projects">← All projects</a>
+<a class="proj" href="../esphome-halow.html">esphome-halow</a>
+<h4>Guides</h4>
+<a href="usage-guide.html">Usage guide</a>
+<a href="hardware.html">Hardware</a>
+<a href="development.html">Development</a>
+<h4>Internals</h4>
+<a class="cur" href="architecture.html">Architecture</a>
+<div class="sub"><a href="#files">Files</a><a href="#build-time-__init__py">Build time (__init__.py)</a><a href="#runtime">Runtime</a><a href="#things-not-to-change-casually">Things not to change casually</a></div>
+<a href="esphome-compatibility.html">ESPHome compatibility</a>
+<a href="halow-notes.html">Engineering Notes - ESPHome Wi-Fi HaLow Component</a>
+<a href="patches.html">Patches against upstream</a></aside>
+  <article class="doc">
+    <div class="crumbs"><a href="../../index.html">Home</a> / <a href="../esphome-halow.html">esphome-halow</a> / Internals</div>
+    <h1>Architecture</h1>
+    
+    <div class="md"><p>How the <code>halow</code> component works today. This is the current reference; <a href="halow-notes.html">HALOW_NOTES.md</a> is the original author's engineering notebook and is partly historical.</p>
+<h2 id="files">Files</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>File</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>components/halow/__init__.py</code></td>
+<td>YAML schema and validation, code generation, MM-IoT-SDK download, sdkconfig options, build flags, the ESPHome network patch</td>
+</tr>
+<tr>
+<td><code>components/halow/halow_component.h</code></td>
+<td><code>HalowComponent</code> class, sensor setters, <code>HalowScanButton</code>, network hook declarations</td>
+</tr>
+<tr>
+<td><code>components/halow/halow_component.cpp</code></td>
+<td>Everything at runtime: SDK bring-up, state machine, reconnect timer, sensors, mDNS, channel scan, linker wraps</td>
+</tr>
+<tr>
+<td><code>components/halow/pre_build.py</code></td>
+<td>PlatformIO-toolchain-only script that links the firmware blobs. Unused with the default native ESP-IDF toolchain</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="build-time-__init__py">Build time (<code>__init__.py</code>)</h2>
+<p><code>CONFIG_SCHEMA</code> validates the YAML. Beyond normal types it enforces: <code>country_code</code> required and in the SDK's regulatory database; <code>ssid</code> 1-32 and <code>password</code> ≤100 characters; a password for <code>SAE</code>; <code>type: MM6108</code> and <code>mode: STATION</code> only; pins distinct and 0-48; <code>max_tx_power</code> 1-30.</p>
+<p><code>to_code()</code> then:</p>
+<ol>
+<li>Passes config to the C++ object (<code>set_ssid</code>, <code>set_country_code</code>, pins, sensors, ...) and defines <code>USE_HALOW</code>.</li>
+<li><code>_ensure_sdk()</code> downloads the MM-IoT-SDK pinned to <code>MM_IOT_SDK_COMMIT</code> (<code>git init</code> + <code>fetch --depth 1 &lt;sha&gt;</code>), or uses the existing checkout. Warns if the default checkout is at another commit.</li>
+<li>Registers SDK folders as ESP-IDF components: <code>morselib</code>, <code>mm_shims</code>, <code>mmipal</code>, <code>mmutils</code>, <code>mmpktmem</code>, <code>mmregdb</code>.</li>
+<li>Sets sdkconfig options:</li>
+</ol>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Why</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>CONFIG_MM_*</code> pins, <code>CONFIG_MM_BCF_FILE</code>, <code>CONFIG_MM_FW_FILE</code>, <code>CONFIG_MMHAL_CHIP_TYPE_MM6108</code></td>
+<td>Read by the SDK's <code>mm_shims</code></td>
+</tr>
+<tr>
+<td><code>CONFIG_FREERTOS_HZ=1000</code>, <code>CONFIG_FREERTOS_TIMER_TASK_PRIORITY=10</code></td>
+<td>Required by the SDK</td>
+</tr>
+<tr>
+<td><code>CONFIG_FREERTOS_TIMER_TASK_STACK_DEPTH=4096</code></td>
+<td>Reconnects run SDK calls and logging on the timer task</td>
+</tr>
+<tr>
+<td><code>CONFIG_ESP32S3_INSTRUCTION_CACHE_32KB</code> (S3 only)</td>
+<td>SDK recommendation</td>
+</tr>
+<tr>
+<td><code>CONFIG_MBEDTLS_NIST_KW_C</code>, <code>CONFIG_MBEDTLS_CMAC_C</code></td>
+<td>Morse supplicant crypto; ESPHome 2026.x disables CMAC</td>
+</tr>
+<tr>
+<td><code>CONFIG_LWIP_NETIF_STATUS_CALLBACK</code>, <code>CONFIG_LWIP_STATS</code></td>
+<td>mmipal link callbacks; packet counters for <code>tx_pps</code>/<code>rx_pps</code></td>
+</tr>
+<tr>
+<td><code>CONFIG_MDNS_PREDEF_NETIF_{STA,AP,ETH}=n</code></td>
+<td>No Wi-Fi/Ethernet esp_netif exists for mDNS to attach to</td>
+</tr>
+</tbody>
+</table></div>
+<ol start="5">
+<li>Adds build flags: <code>-DLWIP_NETIF_LINK_CALLBACK=1</code>, <code>-Wl,--wrap=tcpip_input</code> (RX byte counting), <code>-Wl,--wrap=tcpip_init</code> (see below).</li>
+<li><code>_patch_network_util()</code> writes patched copies of ESPHome's <code>network/util.h</code> and <code>util.cpp</code> into the build tree. See <a href="esphome-compatibility.html">ESPHOME_COMPAT.md</a>.</li>
+<li>Registers <code>pre_build.py</code> for the PlatformIO toolchain only.</li>
+</ol>
+<p>At import, <code>_install_address_hook()</code> also makes ESPHome's <code>CORE.address</code> fall back to <code>halow.use_address</code>, so the CLI and Device Builder can find the device for wireless logs and OTA (see <a href="esphome-compatibility.html">ESPHOME_COMPAT.md</a>). This is host-side only and doesn't change the firmware.</p>
+<h2 id="runtime">Runtime</h2>
+<h3 id="tasks-and-shared-state">Tasks and shared state</h3>
+<p>Four execution contexts touch the component. Keep this in mind for any change:</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Context</th>
+<th>Runs</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>ESPHome main loop</td>
+<td><code>setup()</code>, <code>loop()</code>, sensor updates, <code>request_channel_scan()</code>, <code>publish_scan_results_()</code>, <code>start_mdns_()</code></td>
+</tr>
+<tr>
+<td>lwIP tcpip thread</td>
+<td><code>mmipal_link_status_cb</code>, <code>__wrap_tcpip_input</code>, <code>halow_linkoutput_hook</code></td>
+</tr>
+<tr>
+<td>Morse SDK tasks</td>
+<td><code>link_state_cb</code>, <code>sta_status_cb</code>, <code>halow_scan_rx_cb</code>, <code>halow_scan_complete_cb</code></td>
+</tr>
+<tr>
+<td>FreeRTOS timer task</td>
+<td><code>do_halow_reconnect</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>They communicate through file-static <code>volatile</code> flags (<code>s_link_up</code>, <code>s_link_down_event</code>, <code>s_sta_connected</code>, <code>s_reconnecting</code>, <code>s_scan_complete</code>, <code>s_scan_running</code>), <code>s_last_attempt_ms</code>, the byte counters, and <code>s_scan_entries</code> guarded by <code>s_scan_lock</code>. The SDK's own callbacks must not block or call <code>mmwlan_*</code> APIs.</p>
+<h3 id="setup"><code>setup()</code></h3>
+<ol>
+<li>Register <code>halow_shutdown_handler</code> (runs before <code>esp_restart()</code>, e.g. after OTA: STA disable, shutdown, deinit, SPI reset, hold MM6108 in reset).</li>
+<li>Reset the SPI2 peripheral and free any stale bus.</li>
+<li>Disarm GPIO interrupts on the IRQ and BUSY pins. A software reset doesn't clear the GPIO matrix; a LOW_LEVEL IRQ left armed storms as soon as <code>mmhal_init()</code> installs the ISR service.</li>
+<li>Pulse RESET_N.</li>
+<li><code>mmhal_init()</code>, <code>mmwlan_init()</code>, optional <code>mmwlan_override_max_tx_power()</code>, <code>mmwlan_set_channel_list()</code> for the country, link-state callback, <code>mmwlan_boot()</code> (loads <code>mm6108.mbin</code> and the BCF over SPI, about 0.7 s).</li>
+<li>Power save off (the BUSY pin is unreliable in this firmware), sub-bands as configured.</li>
+<li><code>mmipal_init()</code> (DHCP or static; static also sets DNS via <code>mmipal_set_dns_server()</code>), link-status callback, reconnect timer (one-shot, 15 s), scan mutex.</li>
+<li><code>start_connect_()</code> → <code>mmwlan_sta_enable()</code>. <strong>This powers up the RF section</strong>; see <a href="hardware.html#power">HARDWARE.md</a>.</li>
+</ol>
+<h3 id="state-machine-and-reconnects">State machine and reconnects</h3>
+<pre><code>STOPPED ──setup() ok──► CONNECTING ──STA connected + IP──► CONNECTED
+                           │   ▲                               │
+   60 s since last attempt │   │ link up + IP                  │ link down
+   and no timer pending    ▼   │                               ▼
+                   schedule_reconnect() ──► timer (15 s) ◄── CONNECTING
+                                              │
+                                   do_halow_reconnect():
+                                   sta_disable() (failure tolerated)
+                                   sta_enable()
+</code></pre>
+<p><strong>Invariant: after the first <code>sta_enable()</code> in <code>setup()</code>, only the timer task calls <code>mmwlan_sta_disable/enable</code>.</strong> <code>loop()</code> only schedules the timer. The original author found that calling these from the main loop wedges the SDK, and running them from two tasks at once races. <code>s_last_attempt_ms</code> is set by every <code>sta_enable()</code> and on link loss; <code>loop()</code> uses it for the 60 s connect timeout. The link-down callback schedules the timer immediately; <code>loop()</code>'s timeout is the backstop.</p>
+<h3 id="network-integration">Network integration</h3>
+<p>ESPHome components (API, MQTT, OTA, <code>status</code>, <code>http_request</code>, ...) ask <code>network::is_connected()</code> whether the network is up. The build-time patch makes that, and <code>network::get_ip_addresses()</code>, call <code>halow::network_is_connected()</code> / <code>halow::network_get_ip_addresses()</code>, defined at the end of <code>halow_component.cpp</code>.</p>
+<p><code>__wrap_tcpip_init</code>: ESPHome's network component calls <code>esp_netif_init()</code>, which starts lwIP. <code>mmipal_init()</code> calls <code>tcpip_init()</code> again, which would abort. The wrapper lets the first call through and turns later calls into <code>tcpip_callback(initfunc, arg)</code> on the running thread. The wrapper lives in <code>halow_component.cpp</code> because <code>--wrap</code> targets in a file nobody else references get dropped by the linker.</p>
+<h3 id="mdns">mDNS</h3>
+<p>mmipal creates a raw lwIP <code>netif</code>, but the mDNS library needs an <code>esp_netif_t</code>. On first connect <code>start_mdns_()</code> finds the netif by MAC, wraps it in a minimal <code>esp_netif_obj</code> (from the internal header <code>esp_netif_lwip_internal.h</code>, included relative to esp_netif's public include dir), registers it and announces. <code>mdns_init()</code> is a no-op if ESPHome's mdns component already started the responder, so ESPHome's services and TXT records are kept; <code>_esphomelib._tcp</code> is only added if missing. Later connects re-announce.</p>
+<h3 id="sensors">Sensors</h3>
+<p><code>update_sensors_()</code> runs every 10 s while connected.</p>
+<ul>
+<li>RSSI: <code>mmwlan_get_rssi()</code>.</li>
+<li>Packet rates: deltas of <code>mmipal_get_link_packet_counts()</code>.</li>
+<li>Throughput: deltas of the byte counters. TX is counted by wrapping <code>netif-&gt;linkoutput</code> once the link is up; RX by <code>__wrap_tcpip_input</code>, filtered to the netif named <code>MM</code>.</li>
+<li>MCS, bandwidth, TX success and link quality: deltas of <code>mmwlan_get_rc_stats()</code> per rate entry. The rate with the most new packets is the current one.</li>
+<li>Drops, CCMP failures, HW restarts: <code>mmwlan_get_umac_stats()</code>.</li>
+<li>IP, gateway, subnet and BSSID are republished every cycle; SSID, MAC and firmware version once.</li>
+</ul>
+<h3 id="channel-scan">Channel scan</h3>
+<p>The <code>scan_channel</code> button calls <code>request_channel_scan()</code> (only while connected) → <code>mmwlan_scan_request()</code>. Results arrive on an SDK task and are copied into <code>s_scan_entries</code> under <code>s_scan_lock</code> (max 32). When the complete callback sets <code>s_scan_complete</code>, <code>loop()</code> calls <code>publish_scan_results_()</code>: sort by RSSI, pick the noise floor (our AP's channel, else the quietest), and publish compact JSON truncated to whole entries within Home Assistant's 255-character state limit.</p>
+<h2 id="things-not-to-change-casually">Things not to change casually</h2>
+<ul>
+<li>Don't call <code>mmwlan_sta_*</code> from <code>loop()</code> or from SDK/lwIP callbacks.</li>
+<li>Don't <code>mdns_free()</code>; it destroys ESPHome's records.</li>
+<li>Don't remove the GPIO interrupt disarm in <code>setup()</code>.</li>
+<li>Don't make the network patch silently skip on a mismatch; a build error is the safe failure.</li>
+<li>Keep <code>MM_IOT_SDK_COMMIT</code> pinned; bump it deliberately and re-test (firmware and BCF must come from the same SDK version).</li>
+</ul></div>
+    <div class="links"><a class="btn small" href="https://github.com/DefeatedWarrior/esphome-halow/blob/main/docs/ARCHITECTURE.md">View source on GitHub</a></div>
+    <nav class="pn"><a href="development.html"><small>← Previous</small>Development</a><a class="r" href="esphome-compatibility.html"><small>Next →</small>ESPHome compatibility</a></nav>
+  </article>
+</div>
+
+<footer>Open-source hardware and firmware by <a href="https://github.com/DefeatedWarrior">DefeatedWarrior</a>. Documentation pages are rendered from each project's repository.</footer>
+</body>
+</html>

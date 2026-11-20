@@ -1,0 +1,102 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Assembly Guide · Ghostlight Node</title>
+<meta name="description" content="Assembly Guide: documentation for Ghostlight Node">
+<link rel="stylesheet" href="../../assets/style.css">
+
+</head>
+<body>
+<header class="site-header"><div class="in">
+  <a class="brand" href="../../index.html"><span class="bulb"></span>DefeatedWarrior</a>
+  <nav>
+    <a href="../../index.html#projects">Projects</a><a href="../../docs.html">Docs</a><a href="https://github.com/DefeatedWarrior">GitHub</a>
+    <form class="search" action="../../search.html" method="get" role="search"><input type="search" name="q" placeholder="Search docs…" aria-label="Search docs"></form>
+  </nav>
+</div></header>
+
+<div class="page">
+  <aside class="toc docs-nav"><a class="back" href="../../index.html#projects">← All projects</a>
+<a class="proj" href="../ghostlight-node.html">Ghostlight Node</a>
+<h4>Wiki</h4>
+<a href="wiki-home.html">Wiki home</a>
+<a href="getting-started.html">Getting Started</a>
+<a href="hardware-overview.html">Hardware Overview</a>
+<a href="power.html">Power</a>
+<a href="pin-map.html">Pin Map</a>
+<a href="connectors.html">Connectors</a>
+<a href="dmx-ports.html">DMX Ports</a>
+<a href="dmx-wiring.html">DMX Wiring</a>
+<a href="ethernet-and-poe.html">Ethernet and PoE</a>
+<a href="ordering-guide.html">Ordering Guide</a>
+<a href="bill-of-materials.html">Bill of Materials</a>
+<a class="cur" href="assembly-guide.html">Assembly Guide</a>
+<div class="sub"><a href="#order-of-work">Order of work</a><a href="#after-soldering">After soldering</a></div>
+<a href="bring-up-checklist.html">Bring-up Checklist</a>
+<a href="firmware.html">Firmware</a>
+<a href="using-the-node.html">Using the Node</a>
+<a href="troubleshooting.html">Troubleshooting</a>
+<a href="known-issues.html">Known Issues</a>
+<a href="faq.html">FAQ</a>
+<a href="glossary.html">Glossary</a>
+<a href="roadmap.html">Roadmap</a>
+<a href="contributing.html">Contributing</a>
+<h4>Reference docs</h4>
+<a href="01-overview-and-specifications.html">1. Overview and specifications</a>
+<a href="02-architecture-and-power.html">2. Architecture and power tree</a>
+<a href="03-pinout-and-connectors.html">3. Pin map and connectors</a>
+<a href="04-ethernet-and-poe.html">4. Ethernet and PoE</a>
+<a href="05-dmx-ports.html">5. DMX / RS-485 ports</a>
+<a href="06-usb-programming-debug.html">6. USB, programming and debug</a>
+<a href="07-bom-and-sourcing.html">7. Bill of materials and sourcing</a>
+<a href="08-ordering-guide.html">8. Ordering guide</a>
+<a href="09-assembly-guide.html">9. Assembly guide (hand assembly)</a>
+<a href="10-bring-up-and-test.html">10. Bring-up and test plan</a>
+<a href="11-known-issues-and-verification-status.html">11. Known issues and verification status</a>
+<a href="12-pcb-design-notes.html">12. PCB design notes</a>
+<a href="13-firmware-integration.html">13. Firmware integration</a>
+<a href="14-regenerating-the-design.html">14. Regenerating the design</a>
+<a href="15-roadmap.html">15. Roadmap and ideas for rev2</a>
+<h4>Firmware (upstream ESP-NODE-2RDM)</h4>
+<a href="firmware-overview.html">Firmware overview</a>
+<a href="component-dmx-handler.html">DMX handler component</a>
+<a href="component-network-manager.html">Network manager component</a></aside>
+  <article class="doc">
+    <div class="crumbs"><a href="../../index.html">Home</a> / <a href="../ghostlight-node.html">Ghostlight Node</a> / Wiki</div>
+    <h1>Assembly Guide</h1>
+    
+    <div class="md"><p>Hot air or a hotplate makes the W5500, ESP32 module and USB-C connector much easier.</p>
+<h2 id="order-of-work">Order of work</h2>
+<ol>
+<li><strong>Hardest first</strong>
+   - <strong>U2 W5500</strong> (LQFP-48, 0.5 mm): tack two corners, flux, drag-solder, clean bridges with braid.
+   - <strong>J4 USB-C:</strong> signal pins first, then shield posts.
+   - <strong>U1 ESP32-S3:</strong> castellated pads and the centre ground pad. Antenna end hangs at the board edge with nothing under it.</li>
+<li><strong>SOIC / SOT:</strong> U3, U4, U5 (tab to the large pad), U6, Q1, Q2, D1, D2.</li>
+<li><strong>Passives:</strong> 0603 first, then 0805 (C1, C6, C7, C14, C17, C18). Crystal Y1 has no polarity.</li>
+<li><strong>Polarised parts</strong>
+   - <strong>D3, D4, D5 (SS14):</strong> cathode band toward the +5V side (D5 toward <code>LED_VDD</code>).
+   - <strong>D30, D40 LEDs:</strong> cathode to GND.
+   - <strong>LED1 WS2812B:</strong> pin 1 marked on the board.
+   - <strong>C5, C50:</strong> + mark toward the 5 V rail.</li>
+<li><strong>Through-hole:</strong> headers, screw terminals (wire entry toward the edge), J1 RJ45, and <strong>PS1 last</strong> because it covers most of the board.</li>
+<li>Shunts on J2T/J3T only if the node is the last device on a DMX line.</li>
+</ol>
+<h2 id="after-soldering">After soldering</h2>
+<ul>
+<li>[ ] Inspect under magnification: bridges on W5500, USB-C, ESP32, SOIC pins.</li>
+<li>[ ] Orientation of diodes, LEDs, electrolytics.</li>
+<li>[ ] +3V3 to GND and +5V to GND are <strong>not</strong> shorts.</li>
+<li>[ ] Clean flux with isopropyl alcohol.</li>
+</ul>
+<p>Then go to <a href="bring-up-checklist.html">Bring-up Checklist</a>.</p></div>
+    <div class="links"><a class="btn small" href="https://github.com/DefeatedWarrior/ghostlight-node/blob/main/wiki/Assembly-Guide.md">View source on GitHub</a></div>
+    <nav class="pn"><a href="bill-of-materials.html"><small>← Previous</small>Bill of Materials</a><a class="r" href="bring-up-checklist.html"><small>Next →</small>Bring-up Checklist</a></nav>
+  </article>
+</div>
+
+<footer>Open-source hardware and firmware by <a href="https://github.com/DefeatedWarrior">DefeatedWarrior</a>. Documentation pages are rendered from each project's repository.</footer>
+</body>
+</html>

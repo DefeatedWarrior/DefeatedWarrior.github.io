@@ -1,0 +1,87 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>ESPHome compatibility · esphome-halow</title>
+<meta name="description" content="ESPHome compatibility: documentation for esphome-halow">
+<link rel="stylesheet" href="../../assets/style.css">
+
+</head>
+<body>
+<header class="site-header"><div class="in">
+  <a class="brand" href="../../index.html"><span class="bulb"></span>DefeatedWarrior</a>
+  <nav>
+    <a href="../../index.html#projects">Projects</a><a href="../../docs.html">Docs</a><a href="https://github.com/DefeatedWarrior">GitHub</a>
+    <form class="search" action="../../search.html" method="get" role="search"><input type="search" name="q" placeholder="Search docs…" aria-label="Search docs"></form>
+  </nav>
+</div></header>
+
+<div class="page">
+  <aside class="toc docs-nav"><a class="back" href="../../index.html#projects">← All projects</a>
+<a class="proj" href="../esphome-halow.html">esphome-halow</a>
+<h4>Guides</h4>
+<a href="usage-guide.html">Usage guide</a>
+<a href="hardware.html">Hardware</a>
+<a href="development.html">Development</a>
+<h4>Internals</h4>
+<a href="architecture.html">Architecture</a>
+<a class="cur" href="esphome-compatibility.html">ESPHome compatibility</a>
+<div class="sub"><a href="#upgrade-checklist">Upgrade checklist</a><a href="#integration-points">Integration points</a><a href="#toolchain-notes">Toolchain notes</a></div>
+<a href="halow-notes.html">Engineering Notes - ESPHome Wi-Fi HaLow Component</a>
+<a href="patches.html">Patches against upstream</a></aside>
+  <article class="doc">
+    <div class="crumbs"><a href="../../index.html">Home</a> / <a href="../esphome-halow.html">esphome-halow</a> / Internals</div>
+    <h1>ESPHome compatibility</h1>
+    
+    <div class="md"><p>The component reaches into ESPHome and ESP-IDF internals in a few places. When ESPHome releases a new version, these are what can break. Tested version: <strong>ESPHome 2026.9.1, ESP-IDF 5.5.5, native ESP-IDF toolchain</strong> (the Home Assistant ESPHome Builder default).</p>
+<h2 id="upgrade-checklist">Upgrade checklist</h2>
+<ol>
+<li>Run the patch test against the new release: <code>.venv/bin/python esphome-halow/tools/test_network_patch.py &lt;new-version&gt; 2026.9.1</code>.</li>
+<li>Install the new ESPHome in the venv and compile a full-feature config (see <a href="development.html#verification-checklist">DEVELOPMENT.md</a>). Read any warnings from <code>components/halow/</code>.</li>
+<li>Work through each integration point below.</li>
+<li>Flash a board and check the boot log reaches <code>HaLow connected</code>, then that Home Assistant stays connected for more than 15 minutes (proves the network patch at runtime).</li>
+<li>Update the tested version here, in the README and in CLAUDE.md.</li>
+</ol>
+<h2 id="integration-points">Integration points</h2>
+<h3 id="1-networkis_connected-get_ip_addresses-critical">1. <code>network::is_connected()</code> / <code>get_ip_addresses()</code> (critical)</h3>
+<p><strong>What:</strong> ESPHome's API server disconnects every client when <code>network::is_connected()</code> is false, then reboots after <code>reboot_timeout</code>. MQTT, <code>http_request</code>, the <code>status</code> binary sensor, <code>udp</code>, <code>wireguard</code> and others use the same check. It only knows ESPHome's own interfaces.</p>
+<p><strong>History:</strong> up to 2025.x it was a normal function in <code>network/util.cpp</code> and the original component overrode it with <code>-Wl,--wrap</code>. In 2026.4 it became <code>ESPHOME_ALWAYS_INLINE</code> in <code>util.h</code>, and <code>get_use_address()</code> was replaced by <code>get_use_address_to()</code>. The wraps silently stopped working.</p>
+<p><strong>Now:</strong> <code>_patch_network_util()</code> reads the installed ESPHome's <code>network/util.h</code> and <code>util.cpp</code>, inserts a <code>USE_HALOW</code> branch at the top of <code>is_connected()</code> and <code>get_ip_addresses()</code> plus a declaration before the namespace, and registers the copies with <code>esp32.add_extra_build_file()</code>. ESP32's <code>copy_files()</code> runs after <code>writer.copy_src_tree()</code>, so they overwrite the originals in <code>.esphome/build/&lt;name&gt;/src/</code>. Matching is by regex: <code>\bbool is_connected\(\) \{</code> and <code>\bIPAddresses get_ip_addresses\(\) \{</code>, in either file. No match raises <code>EsphomeError</code>.</p>
+<p><strong>Check:</strong> <code>tools/test_network_patch.py</code>; after a build, <code>grep -n USE_HALOW .esphome/build/&lt;name&gt;/src/esphome/components/network/util.h</code>; and that <code>nm -C</code> on <code>api_server.cpp.obj</code> shows <code>U esphome::halow::network_is_connected()</code>.</p>
+<p><strong>If it breaks:</strong> look for a new interface hook in ESPHome (an official way to register a network provider would be better than patching). <code>get_use_address_to()</code> already returns <code>&lt;name&gt;.local</code>, so it needs no hook.</p>
+<h3 id="2-lwip-initialisation-wraptcpip_init">2. lwIP initialisation (<code>--wrap=tcpip_init</code>)</h3>
+<p><strong>What:</strong> ESPHome's network component calls <code>esp_netif_init()</code> (which calls <code>tcpip_init()</code>) before HaLow's <code>setup()</code>. <code>mmipal_init()</code> calls <code>tcpip_init()</code> again; a second <code>lwip_init()</code> aborts in <code>esp_vfs_lwip_sockets_register</code> with <code>ESP_ERR_INVALID_ARG</code>.</p>
+<p><strong>Check:</strong> if ESPHome stops calling <code>esp_netif_init()</code>, or calls it after HaLow, the wrapper still works (first call goes through). If the boot log shows that abort again, the wrapper isn't linked: it must live in a translation unit that is always linked (<code>halow_component.cpp</code>).</p>
+<h3 id="3-sdkconfig-defaults">3. sdkconfig defaults</h3>
+<p>ESPHome 2026.x writes a trimmed sdkconfig. Options the Morse SDK needs that ESPHome may turn off: <code>CONFIG_MBEDTLS_CMAC_C</code> (link error <code>undefined reference to mbedtls_cipher_cmac_*</code>), <code>CONFIG_MBEDTLS_NIST_KW_C</code>. After an upgrade, check <code>.esphome/build/&lt;name&gt;/sdkconfig.&lt;name&gt;</code> still has every option <code>to_code()</code> sets.</p>
+<h3 id="4-internal-esp-idf-header">4. Internal ESP-IDF header</h3>
+<p><code>esp_netif_lwip_internal.h</code> (for the mDNS netif wrapper) is included as <code>"../lwip/esp_netif_lwip_internal.h"</code>, relative to esp_netif's public include dir. It only includes public headers. If ESP-IDF moves or changes <code>struct esp_netif_obj</code>, mDNS registration breaks. The fields used are <code>lwip_netif</code>, <code>flags</code>, <code>if_key</code>, <code>if_desc</code> and <code>route_prio</code>.</p>
+<h3 id="5-mdns-library">5. mDNS library</h3>
+<p>Relies on <code>mdns_init()</code> returning <code>ESP_OK</code> without re-initialising when the responder is already running (espressif/mdns 1.12), and on <code>mdns_service_exists()</code>.</p>
+<h3 id="6-esphome-python-apis-used">6. ESPHome Python APIs used</h3>
+<p><code>esp32.add_idf_component</code>, <code>add_idf_sdkconfig_option</code>, <code>add_extra_build_file</code>, <code>get_esp32_variant</code>, <code>VARIANT_ESP32S3</code>, <code>CORE.relative_build_path</code>, <code>CORE.using_toolchain_platformio</code> (read with <code>getattr</code>, default <code>True</code>), <code>cg.add_platformio_option</code>, <code>sensor.sensor_schema</code>, <code>text_sensor.text_sensor_schema</code>, <code>button.button_schema</code>.</p>
+<h3 id="7-esphome-c-apis-used">7. ESPHome C++ APIs used</h3>
+<p><code>App.get_name()</code>, <code>App.get_friendly_name()</code> (returns <code>StringRef</code> in 2026.x; only <code>.c_str()</code> is used), <code>network::IPAddress</code>/<code>IPAddresses</code>, <code>setup_priority::WIFI</code>, <code>ESPHOME_VERSION</code>, <code>ESPHOME_BOARD</code>. <code>get_mac_address()</code> moved to <code>alloc_helpers.h</code> in 2026.x and is due to change again, so the MAC TXT record uses <code>esp_efuse_mac_get_default()</code> instead.</p>
+<h3 id="8-device-address-for-logs-and-ota-coreaddress">8. Device address for logs and OTA (<code>CORE.address</code>)</h3>
+<p><strong>What:</strong> the CLI and Device Builder pick the host for wireless logs and OTA from <code>CORE.address</code>, a property that only reads <code>use_address</code> from the <code>wifi</code>, <code>ethernet</code> and <code>openthread</code> sections. For a halow-only device it was <code>None</code>, so wireless logs/OTA from the builder failed with "could not be resolved", even on the same network.</p>
+<p><strong>Now:</strong> <code>halow:</code> has a <code>use_address</code> option (defaulting like wifi's: the static IP, else <code>&lt;name&gt;.local</code>), and <code>_install_address_hook()</code> wraps the <code>CORE.address</code> property at module import so it falls back to <code>halow.use_address</code>. If <code>address</code> stops being a property, the hook does nothing (logged at debug level).</p>
+<p><strong>Validated-config cache:</strong> for <code>logs</code> and <code>upload</code>, ESPHome 2026.x loads <code>.esphome/storage/&lt;file&gt;.validated.json</code> and skips validation, so this module (and the hook) never loads. <code>_disable_validated_config_cache()</code> therefore replaces <code>compiled_config.save_compiled_config</code> (and the reference <code>writer.py</code> imported) with a version that deletes the cache file for halow configs instead of writing it. If ESPHome renames these functions the patch does nothing and the "second run fails" bug returns, so re-test after upgrades.</p>
+<p><strong>Check:</strong> with <code>use_address: &lt;ip&gt;</code>, run <code>esphome logs test.yaml --device OTA</code> <strong>twice</strong> (and once after a <code>compile</code>). Every run must print <code>Starting log output from &lt;ip&gt;</code> and none may print "Loaded validated config cache"; no <code>.validated.json</code> should exist for the config.</p>
+<p><strong>Upstream fix:</strong> let <code>CORE.address</code> fall back to the storage sidecar's <code>address</code> or to any component's <code>use_address</code>. Then both hooks can be removed.</p>
+<h3 id="9-platformio-toolchain">9. PlatformIO toolchain</h3>
+<p>Deprecated for ESP32, and due to be removed in ESPHome 2027.2.0. <code>pre_build.py</code> only matters there. Once it's gone, delete <code>pre_build.py</code> and its registration.</p>
+<h2 id="toolchain-notes">Toolchain notes</h2>
+<ul>
+<li>The native ESP-IDF toolchain doesn't use <code>~/.platformio</code>. Anything that assumes that path is PlatformIO-only.</li>
+<li>In Home Assistant OS, ESP-IDF lives under <code>/data/cache/idf/</code> and the MM-IoT-SDK under <code>/root/.esphome/mm-iot-esp32</code>. <code>/root</code> can be reset by add-on updates, which is why the SDK download is pinned.</li>
+<li>External components from GitHub are cached for a day unless <code>refresh:</code> is set.</li>
+</ul></div>
+    <div class="links"><a class="btn small" href="https://github.com/DefeatedWarrior/esphome-halow/blob/main/docs/ESPHOME_COMPAT.md">View source on GitHub</a></div>
+    <nav class="pn"><a href="architecture.html"><small>← Previous</small>Architecture</a><a class="r" href="halow-notes.html"><small>Next →</small>Engineering Notes - ESPHome Wi-Fi HaLow Component</a></nav>
+  </article>
+</div>
+
+<footer>Open-source hardware and firmware by <a href="https://github.com/DefeatedWarrior">DefeatedWarrior</a>. Documentation pages are rendered from each project's repository.</footer>
+</body>
+</html>

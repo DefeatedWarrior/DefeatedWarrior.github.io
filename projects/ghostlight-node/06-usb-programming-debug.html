@@ -1,0 +1,134 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>6. USB, programming and debug · Ghostlight Node</title>
+<meta name="description" content="6. USB, programming and debug: documentation for Ghostlight Node">
+<link rel="stylesheet" href="../../assets/style.css">
+
+</head>
+<body>
+<header class="site-header"><div class="in">
+  <a class="brand" href="../../index.html"><span class="bulb"></span>DefeatedWarrior</a>
+  <nav>
+    <a href="../../index.html#projects">Projects</a><a href="../../docs.html">Docs</a><a href="https://github.com/DefeatedWarrior">GitHub</a>
+    <form class="search" action="../../search.html" method="get" role="search"><input type="search" name="q" placeholder="Search docs…" aria-label="Search docs"></form>
+  </nav>
+</div></header>
+
+<div class="page">
+  <aside class="toc docs-nav"><a class="back" href="../../index.html#projects">← All projects</a>
+<a class="proj" href="../ghostlight-node.html">Ghostlight Node</a>
+<h4>Wiki</h4>
+<a href="wiki-home.html">Wiki home</a>
+<a href="getting-started.html">Getting Started</a>
+<a href="hardware-overview.html">Hardware Overview</a>
+<a href="power.html">Power</a>
+<a href="pin-map.html">Pin Map</a>
+<a href="connectors.html">Connectors</a>
+<a href="dmx-ports.html">DMX Ports</a>
+<a href="dmx-wiring.html">DMX Wiring</a>
+<a href="ethernet-and-poe.html">Ethernet and PoE</a>
+<a href="ordering-guide.html">Ordering Guide</a>
+<a href="bill-of-materials.html">Bill of Materials</a>
+<a href="assembly-guide.html">Assembly Guide</a>
+<a href="bring-up-checklist.html">Bring-up Checklist</a>
+<a href="firmware.html">Firmware</a>
+<a href="using-the-node.html">Using the Node</a>
+<a href="troubleshooting.html">Troubleshooting</a>
+<a href="known-issues.html">Known Issues</a>
+<a href="faq.html">FAQ</a>
+<a href="glossary.html">Glossary</a>
+<a href="roadmap.html">Roadmap</a>
+<a href="contributing.html">Contributing</a>
+<h4>Reference docs</h4>
+<a href="01-overview-and-specifications.html">1. Overview and specifications</a>
+<a href="02-architecture-and-power.html">2. Architecture and power tree</a>
+<a href="03-pinout-and-connectors.html">3. Pin map and connectors</a>
+<a href="04-ethernet-and-poe.html">4. Ethernet and PoE</a>
+<a href="05-dmx-ports.html">5. DMX / RS-485 ports</a>
+<a class="cur" href="06-usb-programming-debug.html">6. USB, programming and debug</a>
+<div class="sub"><a href="#usb-c-j4">USB-C (J4)</a><a href="#programming-the-firmware">Programming the firmware</a><a href="#debug-console">Debug console</a><a href="#reset-and-boot">Reset and boot</a></div>
+<a href="07-bom-and-sourcing.html">7. Bill of materials and sourcing</a>
+<a href="08-ordering-guide.html">8. Ordering guide</a>
+<a href="09-assembly-guide.html">9. Assembly guide (hand assembly)</a>
+<a href="10-bring-up-and-test.html">10. Bring-up and test plan</a>
+<a href="11-known-issues-and-verification-status.html">11. Known issues and verification status</a>
+<a href="12-pcb-design-notes.html">12. PCB design notes</a>
+<a href="13-firmware-integration.html">13. Firmware integration</a>
+<a href="14-regenerating-the-design.html">14. Regenerating the design</a>
+<a href="15-roadmap.html">15. Roadmap and ideas for rev2</a>
+<h4>Firmware (upstream ESP-NODE-2RDM)</h4>
+<a href="firmware-overview.html">Firmware overview</a>
+<a href="component-dmx-handler.html">DMX handler component</a>
+<a href="component-network-manager.html">Network manager component</a></aside>
+  <article class="doc">
+    <div class="crumbs"><a href="../../index.html">Home</a> / <a href="../ghostlight-node.html">Ghostlight Node</a> / Reference docs</div>
+    <h1>6. USB, programming and debug</h1>
+    
+    <div class="md"><h2 id="usb-c-j4">USB-C (J4)</h2>
+<ul>
+<li>USB 2.0 full-speed device (sink). The ESP32-S3 uses its native USB peripheral (D- on GPIO19, D+ on GPIO20), so no USB-UART bridge chip is fitted.</li>
+<li>CC1 and CC2 have 5.1 k pull-downs (R3, R4), so a USB-C host or charger will supply the default 5 V.</li>
+<li>D+ / D- go through a USBLC6-2SC6 ESD array (U6) with its VBUS pin tied to VBUS.</li>
+<li>VBUS goes through a 1.1 A resettable fuse (F1, BORN SMD1206-110/6N) and a Schottky diode (D3) into the +5V rail. The diode stops the board from back-feeding VBUS when powered from PoE or J6.</li>
+<li>Reminder: the USB-only current budget is marginal; see <a href="02-architecture-and-power.html">docs/02</a>.</li>
+</ul>
+<h2 id="programming-the-firmware">Programming the firmware</h2>
+<p>Two ways in:</p>
+<ol>
+<li><strong>Native USB</strong>: hold BOOT (SW1, GPIO0), tap RESET (SW2), release BOOT. The chip enumerates as a USB device in download mode and <code>esptool.py</code> / ESP-IDF <code>idf.py flash</code> can program it. After the first flash the same USB port can also provide a USB-Serial-JTAG console or a CDC console, depending on firmware configuration.</li>
+<li><strong>UART0</strong> (J7) with a 3.3 V USB-UART adapter, if native USB is unavailable.</li>
+</ol>
+<p>Both paths need GPIO0 low at reset; BOOT does that.</p>
+<h2 id="debug-console">Debug console</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Option</th>
+<th>Pins</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>UART0 header J7</td>
+<td>GPIO43 (TX) / GPIO44 (RX), pins GND / TX / RX</td>
+<td>3.3 V logic only, 115200 by default</td>
+</tr>
+<tr>
+<td>USB-C</td>
+<td>native USB</td>
+<td>Needed if a third DMX port is attached to J5, because J5 also uses UART0</td>
+</tr>
+</tbody>
+</table></div>
+<p>Connect the adapter <strong>crossed</strong>: adapter RX to J7 TX, adapter TX to J7 RX, adapter GND to J7 GND. Never connect an adapter's 5 V line.</p>
+<h2 id="reset-and-boot">Reset and boot</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Control</th>
+<th>Effect</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>RESET (SW2)</td>
+<td>pulls EN low; EN has a 10 k pull-up (R1) and 1 uF (C3) for the power-on delay</td>
+</tr>
+<tr>
+<td>BOOT (SW1)</td>
+<td>pulls GPIO0 low; hold it through a reset to enter download mode</td>
+</tr>
+</tbody>
+</table></div></div>
+    <div class="links"><a class="btn small" href="https://github.com/DefeatedWarrior/ghostlight-node/blob/main/docs/06-usb-programming-debug.md">View source on GitHub</a></div>
+    <nav class="pn"><a href="05-dmx-ports.html"><small>← Previous</small>5. DMX / RS-485 ports</a><a class="r" href="07-bom-and-sourcing.html"><small>Next →</small>7. Bill of materials and sourcing</a></nav>
+  </article>
+</div>
+
+<footer>Open-source hardware and firmware by <a href="https://github.com/DefeatedWarrior">DefeatedWarrior</a>. Documentation pages are rendered from each project's repository.</footer>
+</body>
+</html>

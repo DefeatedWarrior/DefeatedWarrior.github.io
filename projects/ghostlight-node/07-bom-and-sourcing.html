@@ -1,0 +1,448 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>7. Bill of materials and sourcing · Ghostlight Node</title>
+<meta name="description" content="7. Bill of materials and sourcing: documentation for Ghostlight Node">
+<link rel="stylesheet" href="../../assets/style.css">
+
+</head>
+<body>
+<header class="site-header"><div class="in">
+  <a class="brand" href="../../index.html"><span class="bulb"></span>DefeatedWarrior</a>
+  <nav>
+    <a href="../../index.html#projects">Projects</a><a href="../../docs.html">Docs</a><a href="https://github.com/DefeatedWarrior">GitHub</a>
+    <form class="search" action="../../search.html" method="get" role="search"><input type="search" name="q" placeholder="Search docs…" aria-label="Search docs"></form>
+  </nav>
+</div></header>
+
+<div class="page">
+  <aside class="toc docs-nav"><a class="back" href="../../index.html#projects">← All projects</a>
+<a class="proj" href="../ghostlight-node.html">Ghostlight Node</a>
+<h4>Wiki</h4>
+<a href="wiki-home.html">Wiki home</a>
+<a href="getting-started.html">Getting Started</a>
+<a href="hardware-overview.html">Hardware Overview</a>
+<a href="power.html">Power</a>
+<a href="pin-map.html">Pin Map</a>
+<a href="connectors.html">Connectors</a>
+<a href="dmx-ports.html">DMX Ports</a>
+<a href="dmx-wiring.html">DMX Wiring</a>
+<a href="ethernet-and-poe.html">Ethernet and PoE</a>
+<a href="ordering-guide.html">Ordering Guide</a>
+<a href="bill-of-materials.html">Bill of Materials</a>
+<a href="assembly-guide.html">Assembly Guide</a>
+<a href="bring-up-checklist.html">Bring-up Checklist</a>
+<a href="firmware.html">Firmware</a>
+<a href="using-the-node.html">Using the Node</a>
+<a href="troubleshooting.html">Troubleshooting</a>
+<a href="known-issues.html">Known Issues</a>
+<a href="faq.html">FAQ</a>
+<a href="glossary.html">Glossary</a>
+<a href="roadmap.html">Roadmap</a>
+<a href="contributing.html">Contributing</a>
+<h4>Reference docs</h4>
+<a href="01-overview-and-specifications.html">1. Overview and specifications</a>
+<a href="02-architecture-and-power.html">2. Architecture and power tree</a>
+<a href="03-pinout-and-connectors.html">3. Pin map and connectors</a>
+<a href="04-ethernet-and-poe.html">4. Ethernet and PoE</a>
+<a href="05-dmx-ports.html">5. DMX / RS-485 ports</a>
+<a href="06-usb-programming-debug.html">6. USB, programming and debug</a>
+<a class="cur" href="07-bom-and-sourcing.html">7. Bill of materials and sourcing</a>
+<div class="sub"><a href="#bom-per-board">BOM (per board)</a><a href="#notes-on-specific-lines">Notes on specific lines</a><a href="#approximate-cost-snapshot-2026-11-11">Approximate cost (snapshot, 2026-11-11)</a></div>
+<a href="08-ordering-guide.html">8. Ordering guide</a>
+<a href="09-assembly-guide.html">9. Assembly guide (hand assembly)</a>
+<a href="10-bring-up-and-test.html">10. Bring-up and test plan</a>
+<a href="11-known-issues-and-verification-status.html">11. Known issues and verification status</a>
+<a href="12-pcb-design-notes.html">12. PCB design notes</a>
+<a href="13-firmware-integration.html">13. Firmware integration</a>
+<a href="14-regenerating-the-design.html">14. Regenerating the design</a>
+<a href="15-roadmap.html">15. Roadmap and ideas for rev2</a>
+<h4>Firmware (upstream ESP-NODE-2RDM)</h4>
+<a href="firmware-overview.html">Firmware overview</a>
+<a href="component-dmx-handler.html">DMX handler component</a>
+<a href="component-network-manager.html">Network manager component</a></aside>
+  <article class="doc">
+    <div class="crumbs"><a href="../../index.html">Home</a> / <a href="../ghostlight-node.html">Ghostlight Node</a> / Reference docs</div>
+    <h1>7. Bill of materials and sourcing</h1>
+    
+    <div class="md"><p>Files: <code>bom/BOM_order.csv</code> (one line per part type with reference designators, value, footprint and status) and <code>bom/BOM_order_purchase.csv</code> (LCSC part number and quantity per board, ready for the LCSC BOM tool).</p>
+<ul>
+<li>39 purchase lines, all parts have an LCSC number.</li>
+<li><code>OK</code> in the status column means the LCSC number matched the stated part name when it was checked. <code>OK*</code> means the part is also on the "check live stock and size" list below. <code>CHECK</code> means a line needs a closer look.</li>
+<li><strong>Stock and prices were last checked on 2026-11-11 and change daily.</strong> Re-import the purchase list before ordering.</li>
+</ul>
+<h2 id="bom-per-board">BOM (per board)</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>LCSC</th>
+<th>Refs</th>
+<th>Qty</th>
+<th>Value</th>
+<th>Part</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>C15850</td>
+<td>C1 C6 C14 C18</td>
+<td>4</td>
+<td>10uF</td>
+<td>Samsung CL21A106KAYNNNE 10uF 0805</td>
+<td>OK</td>
+</tr>
+<tr>
+<td>C21122</td>
+<td>C16</td>
+<td>1</td>
+<td>22nF</td>
+<td>Samsung CL10B223KB8NNNC 22nF</td>
+<td>OK</td>
+</tr>
+<tr>
+<td>C1779</td>
+<td>C17</td>
+<td>1</td>
+<td>4.7uF</td>
+<td>Samsung CL21A475KAQNNNE 4.7uF 0805</td>
+<td>OK</td>
+</tr>
+<tr>
+<td>C107040</td>
+<td>C19 C20</td>
+<td>2</td>
+<td>18pF</td>
+<td>Yageo CC0603JRNPO9BN180 18pF 50V NP0</td>
+<td>OK</td>
+</tr>
+<tr>
+<td>C1591</td>
+<td>C2 C4 C10 C11 C12 C13 C15 C21 C30 C40</td>
+<td>10</td>
+<td>100nF</td>
+<td>Samsung CL10B104KB8NNNC 100nF 50V X7R</td>
+<td>OK</td>
+</tr>
+<tr>
+<td>C1589</td>
+<td>C23</td>
+<td>1</td>
+<td>10nF</td>
+<td>Samsung CL10B103KB8NNNC 10nF</td>
+<td>OK</td>
+</tr>
+<tr>
+<td>C29936</td>
+<td>C3</td>
+<td>1</td>
+<td>1uF</td>
+<td>Samsung CL10B105KA8NNNC 1uF 25V X7R 0603</td>
+<td>OK</td>
+</tr>
+<tr>
+<td>C32514</td>
+<td>C5 C50</td>
+<td>2</td>
+<td>220uF</td>
+<td>Honor RVT0J221M0605 220uF 6.3V 6.3x5.4</td>
+<td>OK</td>
+</tr>
+<tr>
+<td>C45783</td>
+<td>C7</td>
+<td>1</td>
+<td>22uF</td>
+<td>Samsung CL21A226MAQNNNE 22uF 0805</td>
+<td>OK</td>
+</tr>
+<tr>
+<td>C2943053</td>
+<td>D1 D2</td>
+<td>2</td>
+<td>SM712</td>
+<td>SM712 SOT-23 TVS</td>
+<td>OK*</td>
+</tr>
+<tr>
+<td>C12065</td>
+<td>D30</td>
+<td>1</td>
+<td>P1</td>
+<td>LITEON LTST-C193TGKT-5A emerald green 0603</td>
+<td>OK</td>
+</tr>
+<tr>
+<td>C12065</td>
+<td>D40</td>
+<td>1</td>
+<td>P2</td>
+<td>LITEON LTST-C193TGKT-5A emerald green 0603</td>
+<td>OK</td>
+</tr>
+<tr>
+<td>C2480</td>
+<td>D5 D3 D4</td>
+<td>3</td>
+<td>SS14</td>
+<td>MDD SS14 SMA</td>
+<td>OK</td>
+</tr>
+<tr>
+<td>C22366107</td>
+<td>F1</td>
+<td>1</td>
+<td>PTC 1.1A</td>
+<td>BORN SMD1206-110/6N PTC</td>
+<td>OK</td>
+</tr>
+<tr>
+<td>C19724786</td>
+<td>J1</td>
+<td>1</td>
+<td>HR871150C</td>
+<td>Hanrun HR871150C 10/100 PoE RJ45 magjack</td>
+<td>OK*</td>
+</tr>
+<tr>
+<td>C474953</td>
+<td>J2 J2O J3 J3O</td>
+<td>4</td>
+<td>Screw terminal 3P 5.08</td>
+<td>Cixi Kefa KF128-5.08-3P-AA screw terminal</td>
+<td>OK</td>
+</tr>
+<tr>
+<td>C165948</td>
+<td>J4</td>
+<td>1</td>
+<td>USB-C (device/sink)</td>
+<td>HRO TYPE-C-31-M-12</td>
+<td>OK</td>
+</tr>
+<tr>
+<td>C2337</td>
+<td>J5</td>
+<td>1</td>
+<td>PinHeader_1x12_P2.54mm_Vertical</td>
+<td>BOOMELE 2.54mm 1x40P pin header (snap to length)</td>
+<td>OK</td>
+</tr>
+<tr>
+<td>C2337</td>
+<td>J6 J2T J3T</td>
+<td>3</td>
+<td>PinHeader_1x02_P2.54mm_Vertical</td>
+<td>BOOMELE 2.54mm 1x40P pin header (snap to length)</td>
+<td>OK</td>
+</tr>
+<tr>
+<td>C2337</td>
+<td>J7</td>
+<td>1</td>
+<td>PinHeader_1x03_P2.54mm_Vertical</td>
+<td>BOOMELE 2.54mm 1x40P pin header (snap to length)</td>
+<td>OK</td>
+</tr>
+<tr>
+<td>C76892</td>
+<td>L1</td>
+<td>1</td>
+<td>FB 120R@100MHz</td>
+<td>Murata BLM18AG121SN1D</td>
+<td>OK</td>
+</tr>
+<tr>
+<td>C114586</td>
+<td>LED1</td>
+<td>1</td>
+<td>WS2812B</td>
+<td>Worldsemi WS2812B-B/W 5050</td>
+<td>OK</td>
+</tr>
+<tr>
+<td>C5380091</td>
+<td>PS1</td>
+<td>1</td>
+<td>DP9700-5V</td>
+<td>SDAPO DP9700-5V PoE PD module 5V/2A</td>
+<td>OK*</td>
+</tr>
+<tr>
+<td>C8545</td>
+<td>Q1 Q2</td>
+<td>2</td>
+<td>2N7002</td>
+<td>JSCJ 2N7002 SOT-23</td>
+<td>OK</td>
+</tr>
+<tr>
+<td>C25804</td>
+<td>R1 R5 R8 R9 R10 R11 R30 R40</td>
+<td>8</td>
+<td>10k</td>
+<td>UNI-ROYAL 0603WAF1002T5E</td>
+<td>OK</td>
+</tr>
+<tr>
+<td>C23138</td>
+<td>R2</td>
+<td>1</td>
+<td>330</td>
+<td>UNI-ROYAL 0603WAF3300T5E</td>
+<td>OK</td>
+</tr>
+<tr>
+<td>C23186</td>
+<td>R3 R4</td>
+<td>2</td>
+<td>5.1k</td>
+<td>UNI-ROYAL 0603WAF5101T5E</td>
+<td>OK</td>
+</tr>
+<tr>
+<td>C23350</td>
+<td>R31 R32 R41 R42</td>
+<td>4</td>
+<td>240 1%</td>
+<td>UNI-ROYAL 0603WAF2400T5E</td>
+<td>OK</td>
+</tr>
+<tr>
+<td>C25803</td>
+<td>R33 R43</td>
+<td>2</td>
+<td>100k</td>
+<td>UNI-ROYAL 0603WAF1003T5E</td>
+<td>OK</td>
+</tr>
+<tr>
+<td>C22787</td>
+<td>R34 R44</td>
+<td>2</td>
+<td>120 1%</td>
+<td>UNI-ROYAL 0603WAF1200T5E</td>
+<td>OK</td>
+</tr>
+<tr>
+<td>C21190</td>
+<td>R35 R45</td>
+<td>2</td>
+<td>1k</td>
+<td>UNI-ROYAL 0603WAF1001T5E</td>
+<td>OK</td>
+</tr>
+<tr>
+<td>C22962</td>
+<td>R50 R51</td>
+<td>2</td>
+<td>220</td>
+<td>UNI-ROYAL 0603WAF2200T5E</td>
+<td>OK</td>
+</tr>
+<tr>
+<td>C227572</td>
+<td>R6</td>
+<td>1</td>
+<td>12.4k 1%</td>
+<td>Yageo AC0603FR-0712K4L 12.4k 1%</td>
+<td>OK</td>
+</tr>
+<tr>
+<td>C22935</td>
+<td>R7 R12</td>
+<td>2</td>
+<td>1M</td>
+<td>UNI-ROYAL 0603WAF1004T5E</td>
+<td>OK</td>
+</tr>
+<tr>
+<td>C2886898</td>
+<td>SW1</td>
+<td>1</td>
+<td>BOOT</td>
+<td>E-Switch TL3342F160QG</td>
+<td>OK</td>
+</tr>
+<tr>
+<td>C2886898</td>
+<td>SW2</td>
+<td>1</td>
+<td>RESET</td>
+<td>E-Switch TL3342F160QG</td>
+<td>OK</td>
+</tr>
+<tr>
+<td>C2913198</td>
+<td>U1</td>
+<td>1</td>
+<td>ESP32-S3-WROOM-1-N8</td>
+<td>Espressif ESP32-S3-WROOM-1-N8</td>
+<td>OK*</td>
+</tr>
+<tr>
+<td>C32843</td>
+<td>U2</td>
+<td>1</td>
+<td>W5500</td>
+<td>WIZnet W5500 LQFP-48</td>
+<td>OK*</td>
+</tr>
+<tr>
+<td>C48125</td>
+<td>U3 U4</td>
+<td>2</td>
+<td>SN65HVD72DR</td>
+<td>TI SN65HVD72DR</td>
+<td>OK*</td>
+</tr>
+<tr>
+<td>C6186</td>
+<td>U5</td>
+<td>1</td>
+<td>AMS1117-3.3</td>
+<td>AMS1117-3.3 SOT-223</td>
+<td>OK*</td>
+</tr>
+<tr>
+<td>C7519</td>
+<td>U6</td>
+<td>1</td>
+<td>USBLC6-2SC6</td>
+<td>ST USBLC6-2SC6</td>
+<td>OK</td>
+</tr>
+<tr>
+<td>C2842189</td>
+<td>Y1</td>
+<td>1</td>
+<td>25MHz</td>
+<td>HCI XC32M4-25.000-F20NJDT 3225 25MHz 20pF</td>
+<td>CHECK</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="notes-on-specific-lines">Notes on specific lines</h2>
+<ul>
+<li><strong>Pin headers (C2337)</strong>: the BOM lists the five header positions (J5, J6, J2T, J3T, J7) as 5 parts, but they are all cut from a <strong>single 1x40 strip</strong> (21 pins used in total). Buy one strip; LCSC's minimum order may force you to buy 5.</li>
+<li><strong>Jumper shunts (C2689176)</strong>: two 2.54 mm shunts for J2T / J3T are on the purchase list (not on <code>BOM_order.csv</code>, which lists board parts only). Buy a few extra.</li>
+<li><strong>PoE module (C5380091)</strong>: the most expensive line (about $4-5.5). Stock was <strong>22</strong> when checked, which limits a first batch to a small number of boards. See <a href="08-ordering-guide.html">docs/08</a> for alternatives.</li>
+<li><strong>HR871150C jack (C19724786)</strong>: stock varied between 14 and 248 on different days; price about $1.24-1.60.</li>
+<li><strong>25 MHz crystal (C2842189, flagged CHECK)</strong>: 3225, 20 pF load. The load capacitors C19 / C20 are 18 pF; with stray capacitance the load is close to 20 pF, but this has not been calculated for the actual layout.</li>
+<li><strong>220 uF capacitors (C32514)</strong>: 6.3 x 5.4 mm, 6.3 V. They are on the 5 V rails with about 1.5 V of headroom to the rating. A 10 V part in the same case would be safer; none was found with matching footprint, so this is a rev2 item.</li>
+<li><strong>100 nF, 18 pF, 1 uF, green LED</strong>: the original LCSC numbers were out of stock; the BOM uses in-stock alternatives (C1591, C107040, C29936 25 V X7R, C12065). The 1 uF capacitor is on the EN pin, so 25 V is enough.</li>
+<li><strong>Port LEDs</strong> (D30, D40, green, forward voltage about 2.8 V) with 1 k series resistors from a 3.3 V GPIO will be <strong>dim</strong>. Swap R35 / R45 for 330 ohm (the 330 ohm value is already in the BOM for R2) if you want them brighter.</li>
+</ul>
+<h2 id="approximate-cost-snapshot-2026-11-11">Approximate cost (snapshot, 2026-11-11)</h2>
+<p>Single-unit LCSC prices for the main lines: ESP32-S3-WROOM-1-N8 about $3.15, DP9700-5V about $4.30-5.54 (depending on quantity), W5500 about $1.83, 2 x SN65HVD72DR about $1.95, HR871150C about $1.24-1.60, 4 x screw terminals about $0.63. These sum to about $14-15 per board before passives, the PCB, and shipping.</p>
+<p>The LCSC BOM tool estimated <strong>$25.09</strong> for one board's cart, but that figure includes minimum-order quantities on the passives (for example 20 x 10 uF, 50 x 100 nF), so it overstates the per-board cost at volume. PCB fabrication and shipping are extra.</p></div>
+    <div class="links"><a class="btn small" href="https://github.com/DefeatedWarrior/ghostlight-node/blob/main/docs/07-bom-and-sourcing.md">View source on GitHub</a></div>
+    <nav class="pn"><a href="06-usb-programming-debug.html"><small>← Previous</small>6. USB, programming and debug</a><a class="r" href="08-ordering-guide.html"><small>Next →</small>8. Ordering guide</a></nav>
+  </article>
+</div>
+
+<footer>Open-source hardware and firmware by <a href="https://github.com/DefeatedWarrior">DefeatedWarrior</a>. Documentation pages are rendered from each project's repository.</footer>
+</body>
+</html>

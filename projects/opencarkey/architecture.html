@@ -1,0 +1,189 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Architecture and BLE protocol · OpenCarKey</title>
+<meta name="description" content="Architecture and BLE protocol: documentation for OpenCarKey">
+<link rel="stylesheet" href="../../assets/style.css">
+
+</head>
+<body>
+<header class="site-header"><div class="in">
+  <a class="brand" href="../../index.html"><span class="bulb"></span>DefeatedWarrior</a>
+  <nav>
+    <a href="../../index.html#projects">Projects</a><a href="../../docs.html">Docs</a><a href="https://github.com/DefeatedWarrior">GitHub</a>
+    <form class="search" action="../../search.html" method="get" role="search"><input type="search" name="q" placeholder="Search docs…" aria-label="Search docs"></form>
+  </nav>
+</div></header>
+
+<div class="page">
+  <aside class="toc docs-nav"><a class="back" href="../../index.html#projects">← All projects</a>
+<a class="proj" href="../opencarkey.html">OpenCarKey</a>
+<h4>Documentation</h4>
+<a class="cur" href="architecture.html">Architecture and BLE protocol</a>
+<div class="sub"><a href="#project-overview">Project Overview</a><a href="#build-run-commands">Build &amp; Run Commands</a><a href="#architecture">Architecture</a><a href="#dependencies">Dependencies</a></div>
+<a href="lock-controller.html">Lock Controller</a>
+<a href="contributing.html">Contributing</a></aside>
+  <article class="doc">
+    <div class="crumbs"><a href="../../index.html">Home</a> / <a href="../opencarkey.html">OpenCarKey</a> / Documentation</div>
+    <h1>Architecture and BLE protocol</h1>
+    
+    <div class="md"><h2 id="project-overview">Project Overview</h2>
+<p>OpenCarKey is a DIY keyless entry system with two components:
+- <strong><code>Firmware/LockController/</code></strong> — ESP32 firmware (C++, PlatformIO)
+- <strong><code>MobileApp/</code></strong> — Flutter Android/iOS app</p>
+<h2 id="build-run-commands">Build &amp; Run Commands</h2>
+<h3 id="mobile-app">Mobile App</h3>
+<pre><code class="language-bash">cd MobileApp
+flutter pub get
+flutter run                          # run on connected device
+flutter build apk --release          # release APK
+dart run build_runner build --delete-conflicting-outputs  # regenerate freezed files
+</code></pre>
+<h3 id="firmware">Firmware</h3>
+<p>Open <code>Firmware/LockController/</code> in PlatformIO. Use PlatformIO's Upload button or:</p>
+<pre><code class="language-bash">cd Firmware/LockController
+pio run --target upload
+pio device monitor --baud 115200     # serial monitor
+</code></pre>
+<h2 id="architecture">Architecture</h2>
+<h3 id="ble-protocol-v4">BLE Protocol (V4)</h3>
+<p>All app→ESP32 messages: <code>32-byte HMAC-SHA256 + 1-byte command + optional [length byte + data]</code>
+All ESP32→app messages: <code>1-byte response + optional [length byte + data]</code></p>
+<ul>
+<li>HMAC covers <code>(counter_le4 || command_byte)</code>; key = SHA-256 of the password.</li>
+<li><strong>Per-device rolling counter</strong> stored in NVS (ESP32) and SharedPreferences (app). Acceptance window is <code>counter .. counter+2</code> (one-sided). To reset: hold BOOT button on ESP32 for 10 seconds, or use the in-app resync flow.</li>
+<li><strong>NVS wear protection</strong>: the ESP32 keeps counters in a RAM dirty-cache (<code>_dirtyCounters</code>) written through to NVS on a <strong>1.5 s debounce during the session</strong> (<code>writeCounter</code>/<code>flushAllCounters</code>) <em>and</em> on disconnect. The debounce is essential on a car: the ESP32 resets without a clean disconnect all the time (brownout on engine crank, watchdog, power glitch) — flushing only on disconnect rolled the counter backward on every such reset and desynced every phone. <code>readCounter</code> checks the dirty cache before NVS (covers quick reconnects). Both the debounced flush and the disconnect flush run on the BLE task, so there's no cross-core race on <code>_dirtyCounters</code>.</li>
+<li><strong>Auto-resync</strong>: on <code>INVALID_HMAC</code> the app silently sends <code>RESYNC_COUNTER</code> (HMAC proves password knowledge, payload = app's current counter) and starts a 4 s <code>resyncTimer</code> on <code>BackgroundVehicle</code>. <code>COUNTER_RESYNCED</code> cancels the timer (silent success → re-fetch state via <code>GET_DATA</code>); further <code>INVALID_HMAC</code>s while the timer is live are ignored (collapses the connect-handshake burst into one resync). Only if the timer fires (no confirmation → genuinely wrong password) does the background emit an <code>auth_failed</code> event, which is the <strong>only</strong> trigger for the reset dialog. Raw <code>INVALID_HMAC</code> must never open the dialog directly — that surfaces a reset prompt for routine, auto-recoverable desyncs.</li>
+<li>HMAC failures are rate-limited per MAC: 5 failures in 30 s → disconnect + 60 s lockout.</li>
+<li><strong>All ESP32 responses are broadcast</strong> to every connected phone (<code>pCharacteristic-&gt;notify()</code> has no per-connection targeting). Any per-phone filtering must happen app-side.</li>
+<li>The ESP32 advertises <code>DEVICE_NAME</code> in plain text; the app's scan dialog filters by service UUID <code>0000ffe0-…</code> (characteristic <code>0000ffe1-…</code>), not by name.</li>
+</ul>
+<p>Full command/response tables: <code>Firmware/LockController/src/bluetooth/commands.h</code> mirrored in <code>MobileApp/lib/types/ble_commands.dart</code>. <strong>Both files must stay in sync</strong> (verified in sync as of last audit). Same for <code>types/features.h</code> ↔ <code>lib/types/features.dart</code>.</p>
+<p>Notable protocol semantics:
+- <code>GET_DATA</code> → <code>LOCKED</code>/<code>UNLOCKED</code>, <strong>plus</strong> current <code>IGNITION_ON/OFF</code> and <code>BOOT_OPEN/CLOSED</code> (via <code>getIgnitionState</code>/<code>getBootState</code> hooks assigned in main.cpp). Sensors otherwise only notify on <em>change</em>, so this is what keeps a freshly connected phone in sync.
+- <code>RSSI_TRIGGER</code> payload = <code>[trigger float, deadZone float]</code>. Lock (release) threshold = <code>trigger − deadZone</code> <strong>in dB</strong> — the dead zone is real hysteresis (it was a dead setting historically; old installs calibrated before this change may need a larger dead zone, ~10–20 dBm).
+- <code>PROXIMITY_COOLDOWN</code> payload = float <strong>minutes</strong>.
+- <code>VOLTAGE (0x0E)</code> — raw battery float, little-endian. <strong>Only sent when <code>IGN_SENSE_ANALOG true</code></strong>. Current board uses <code>false</code> (digital opto) → never sent; app shows the key icon fallback and <code>currentVoltage</code> stays null.</p>
+<h3 id="firmware-firmwarelockcontrollersrc">Firmware (<code>Firmware/LockController/src/</code>)</h3>
+<ul>
+<li><strong><code>main.cpp</code></strong> — pin definitions, relay pulse state machines, sensor polling, <code>setup()</code>, <code>loop()</code>. All hardware I/O lives here; assign BLE callbacks (<code>onLocked</code>, <code>onUnlocked</code>, <code>getIgnitionState</code>, …) in <code>setup()</code>.</li>
+<li><strong><code>bluetooth/bluetooth.h/.cpp</code></strong> — entire BLE stack: HMAC auth, counters, proximity key, notify functions, callback/getter function pointers. Internal logic in an anonymous namespace.</li>
+<li><strong><code>config.h</code></strong> — <code>SUPPORTED_FEATURES</code>, <code>DEVICE_NAME</code>, <code>PASSWORD</code>, <code>DEBUG_MODE</code>, <code>IGN_SENSE_ANALOG</code>, pulse durations.</li>
+<li><strong><code>bluetooth/commands.h</code></strong> — <code>ClientCommand</code> / <code>Esp32Response</code> enums.</li>
+</ul>
+<p><strong>Timing rule:</strong> all <code>millis()</code> deadline comparisons must use the rollover-safe signed-difference idiom (<code>timeReached()</code> helper in main.cpp; <code>(long)(deadline - millis()) &gt; 0</code> pattern in bluetooth.cpp). A car install runs continuously past the 49.7-day wrap. Never write <code>now &gt;= deadline</code> on raw <code>unsigned long</code>s.</p>
+<p><strong>Relay pulses</strong> are non-blocking with two slots: the main slot (<code>_pulsePin</code>) and the parking-light slot (<code>_parkPin</code>, supports N-flash sequences via <code>_parkFlashesLeft</code>/<code>_parkInGap</code>). BLE callbacks run on core 0, <code>loop()</code> on core 1 — the pulse variables are <code>volatile</code> and write-ordered (<code>_pulseEnd</code> before <code>_pulsePin</code>).</p>
+<p>Pulse durations (<code>config.h</code>): lock/unlock 500 ms, boot pop 1000 ms, parking flash 250 ms with 150 ms gap (double-flash on every lock).</p>
+<p>Features enabled in <code>config.h</code> control which buttons appear in the app UI. Currently enabled: <code>DoorsLock | TrunkOpen</code>.</p>
+<p><strong>Board: 303E32DC413</strong> (4-relay + 2-optocoupler board). Confirmed by live hardware testing.</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>GPIO</th>
+<th>Direction</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>INPUT_PULLUP</td>
+<td>Boot button (counter reset, 10 s hold)</td>
+</tr>
+<tr>
+<td>4</td>
+<td>OUTPUT</td>
+<td>Relay 2 — Unlock (active-LOW)</td>
+</tr>
+<tr>
+<td>5</td>
+<td>OUTPUT</td>
+<td>Relay 3 — Parking light flash on lock (active-LOW, <strong>strapping pin</strong> — relay briefly fires at boot; hardware limitation)</td>
+</tr>
+<tr>
+<td>13</td>
+<td>OUTPUT</td>
+<td>Relay 1 — Lock (active-LOW)</td>
+</tr>
+<tr>
+<td>23</td>
+<td>OUTPUT</td>
+<td>Relay 4 — Boot pop (active-LOW)</td>
+</tr>
+<tr>
+<td>27</td>
+<td>INPUT_PULLUP</td>
+<td>Opto IN3 — Ignition sense (LOW = on, 200 ms poll, 2-read debounce)</td>
+</tr>
+<tr>
+<td>33</td>
+<td>INPUT_PULLUP</td>
+<td>Opto IN4 — Boot status (HIGH = open — opto is energised while the boot is shut; 100 ms poll, 2-read debounce)</td>
+</tr>
+</tbody>
+</table></div>
+<p>Unused opto inputs for future use: GPIO 25 (IN1), 26 (IN2). <strong>Do not use for new relays:</strong> GPIO 0, 2, 12, 15 (strapping), GPIO 6–11 (SPI flash).</p>
+<p><strong>Boot-pop lock guard is app-enforced only.</strong> The firmware receives <code>SET_TRUNK_LOCK_REQUIRE</code> and stores it but does <strong>not</strong> gate <code>OPEN_TRUNK</code> — the app shows a confirm dialog when "Require Unlocked for Boot Pop" is on and the car appears locked, then sends the command unconditionally. (A firmware-side guard was removed: state drift made it block legitimate opens.)</p>
+<h3 id="proximity-key-android-only">Proximity Key (Android only)</h3>
+<p>All app logic lives in <code>BleBackgroundService</code>; RSSI measurement and lock/unlock triggering live on the ESP32.</p>
+<p><strong>ESP32 side:</strong> while <code>autoLocking</code> (set by <code>PROXIMITY_KEY_ON</code>), it polls RSSI every 500 ms (5-sample moving average) for the <strong>proximity owner</strong> (<code>_proximityOwnerConnId</code> / <code>_connIdToBda</code>; a later-connecting second phone does not steal the RSSI target). <code>avg &gt; trigger</code> → unlock; <code>avg &lt; trigger − deadZone</code> → lock. Proximity lock/unlock share one cooldown timestamp (<code>previousProximityMillis</code>, default 1 min) as oscillation protection. Three deliberate rules:
+1. <strong>Every lock (manual too) arms the cooldown</strong> — so a manual lock can't be undone by a proximity unlock in the window before the app's <code>PROXIMITY_KEY_OFF</code> arrives.
+2. <strong><code>PROXIMITY_KEY_ON</code> resets the session</strong>: cooldown cleared, RSSI buffer cleared, owner re-targeted. Walking straight back after a lock-on-disconnect unlocks immediately.
+3. <strong>Disconnect of the owner (or all phones) locks the car</strong> (bypassing cooldown) and clears <code>autoLocking</code>.</p>
+<p><strong>App side flow</strong> (on connect): <code>GET_VERSION</code> → <code>GET_FEATURES</code> → <code>GET_DATA</code> → <code>RSSI_TRIGGER</code> + <code>PROXIMITY_COOLDOWN</code> + <code>PROXIMITY_KEY_ON</code> → <code>SET_TRUNK_LOCK_REQUIRE</code>. Settings are per-vehicle (<code>VehicleData.proximityTriggerStrength/DeadZone/Cooldown</code>) falling back to globals — <strong>all paths that send <code>RSSI_TRIGGER</code> must use the effective (override-aware) values</strong>, including the global-slider handlers.</p>
+<p><strong>Manual-lock suppression:</strong> manual lock sets <code>manuallyLocked</code> on <code>BackgroundVehicle</code> and sends <code>PROXIMITY_KEY_OFF</code>; manual unlock clears it and re-sends config + <code>PROXIMITY_KEY_ON</code>. <code>PROXIMITY_LOCKED</code> (walked away) also clears it.</p>
+<p><strong>Ignition suppression</strong> (<code>VehicleData.noProximityLockWithIgnition</code>): on <code>IGNITION_ON</code> the app sends <code>PROXIMITY_KEY_OFF</code> (car must not auto-lock while ignition is on); on <code>IGNITION_OFF</code> it re-enables — <strong>unless <code>manuallyLocked</code></strong>. Every path that would send <code>PROXIMITY_KEY_ON</code> (connect flow, global toggle) skips it while <code>ignitionOn &amp;&amp; noProximityLockWithIgnition</code>. The <code>PROXIMITY_LOCKED</code> handler has a race fallback: if one still arrives, it records <code>doorsLocked = true</code> (the relay already fired) but skips vibration/notification.</p>
+<p><strong>Disconnect handling:</strong> the app computes <code>espAutoLocked</code> (proximity enabled, not per-vehicle disabled, not ignition-suppressed) to decide the notification text ("Proxy Locked" vs plain), the vibrate, and to set <code>doorsLocked = true</code> — this keeps the "car unlocked" disconnect alert from false-alarming about a car that just locked itself.</p>
+<p><strong>Dead zone units are dBm</strong> everywhere (global slider, per-vehicle slider, firmware). The calibration page (<code>range_calibration.dart</code>) streams RSSI via <code>GET_RSSI</code> and stores the result per-vehicle <em>and</em> as the global.</p>
+<h3 id="mobile-app-mobileapplib">Mobile App (<code>MobileApp/lib/</code>)</h3>
+<p><strong>State management:</strong> Riverpod. Key providers in <code>providers/</code>.</p>
+<p><strong>Two execution contexts:</strong>
+1. <strong>Foreground (UI isolate)</strong> — <code>VehicleService</code>, <code>SettingsService</code>, Riverpod providers, all UI widgets.
+2. <strong>Background isolate</strong> (<code>BleBackgroundService</code>) — Android foreground service via <code>flutter_background_service</code>. Owns <strong>all</strong> BLE connections, subscriptions, and proximity logic. Talks to the foreground via named events (<code>service.invoke</code> / <code>service.on</code>).</p>
+<p><strong>Critical: BLE operations only happen in the background isolate.</strong> The foreground never touches <code>flutter_blue_plus</code> directly — it calls <code>BleBackgroundService.sendCommand()</code> which round-trips through the background via a correlation ID (10 s timeout).</p>
+<p><strong>Service-channel gotcha:</strong> <code>service.invoke</code> payloads are JSON-serialized — a <code>Uint8List</code> arrives as <code>List&lt;dynamic&gt;</code>. The <code>send_command</code> handler converts defensively; do the same for any new binary payloads.</p>
+<p><strong>Data flow for a button press:</strong>
+1. <code>VehicleTile</code> → <code>BleBackgroundService.sendCommand(device, command)</code>
+2. Background <code>send_command</code> handler → <code>BleService.sendCommand()</code> → HMAC + counter → characteristic write
+3. ESP32 response notification → <code>_onMessageReceived</code> → <code>_handleMessage()</code> updates <code>BackgroundVehicle</code> state + invokes foreground events; the raw message is also forwarded as <code>command_received</code>
+4. <code>VehicleService</code> listens and updates Riverpod providers → UI rebuilds</p>
+<p><strong>UI rule:</strong> every <code>await</code> of <code>BleBackgroundService.sendCommand</code> from UI code must not let errors escape — a thrown timeout skips the <code>setState</code> that clears a button spinner. <code>VehicleTile</code> routes everything through its <code>_sendCommand</code> helper; fire-and-forget sites (<code>WidgetService</code>, calibration, dialogs) use <code>.catchError</code>/try-catch. Keep new call sites consistent.</p>
+<p><strong>Key files:</strong>
+- <code>services/ble_background_service.dart</code> — background isolate entry point, all BLE logic, proximity state machine, disconnect alerts, service event handlers
+- <code>services/ble_service.dart</code> — low-level BLE write with HMAC/counter, characteristic cache, <code>RESYNC_COUNTER</code>
+- <code>services/vehicle_service.dart</code> — foreground event listener, Riverpod updater, plus <code>VehicleStorage</code> (vehicle JSON in SharedPreferences; shared secret in <code>flutter_secure_storage</code> keyed <code>secret_&lt;mac&gt;</code>, migrated from legacy plaintext JSON on first load — <strong>the secret must never appear in JSON or logs</strong>)
+- <code>types/background_vehicle.dart</code> — mutable in-memory state for the background isolate (separate from the immutable Riverpod <code>Vehicle</code> freezed model)
+- <code>types/vehicle_data.dart</code> — persisted per-vehicle config; <code>toJson</code> deliberately omits <code>sharedSecret</code>
+- <code>services/widget_service.dart</code> — homescreen-widget state; <code>processMessage</code> must handle every response that a widget displays (lock, lights, engine, aux)
+- <code>services/activity_service.dart</code> — 30-day activity log in SharedPreferences; skips (not nukes) unparseable entries</p>
+<p><strong>Background-state invariant:</strong> <code>reload_vehicles</code>/<code>_getVehicles</code> must <strong>preserve</strong> existing <code>BackgroundVehicle</code> objects (update <code>.data</code> only). Recreating them resets live lock/ignition/boot/manual-lock state and breaks suppression + disconnect alerts.</p>
+<p><strong>Foreground robustness:</strong> vehicle lookups in event handlers use <code>firstWhereOrNull</code> — events can arrive for a just-deleted vehicle.</p>
+<h3 id="disconnect-alerts-android-only">Disconnect Alerts (Android only)</h3>
+<p>Three independent toggles in App Settings (<code>notifyBootOpenOnDisconnect</code>, <code>notifyIgnitionOnOnDisconnect</code>, <code>notifyUnlockedOnDisconnect</code>, all default off) — high-priority notifications on the <code>disconnect_alerts</code> channel when leaving BT range with boot open / ignition on / car unlocked. Fired from <code>_handleDisconnected</code>, which reloads prefs first (toggles are written by the foreground isolate). Reliable because <code>GET_DATA</code> reports live ignition/boot state on connect.</p>
+<h3 id="adding-a-new-protocol-command">Adding a New Protocol Command</h3>
+<ol>
+<li>Add to <code>ClientCommand</code> enum in <code>commands.h</code> (firmware) and <code>ble_commands.dart</code> (app) — same value</li>
+<li>Add handler in <code>bluetooth.cpp</code> <code>switch</code></li>
+<li>Add handler in <code>BleBackgroundService._handleMessage()</code> or <code>_handleServiceEvents()</code></li>
+<li>If it changes UI state: add a <code>service.invoke(...)</code> event + a listener in <code>VehicleService</code> (store the subscription and cancel it in <code>dispose</code>) + provider setter</li>
+<li>If a homescreen widget shows the state: also handle it in <code>WidgetService.processMessage</code></li>
+</ol>
+<h3 id="known-current-board-limitations">Known current-board limitations</h3>
+<ul>
+<li><code>interiorLightStream</code> / <code>trunkLightStream</code> and the light/aux notify functions + callbacks are wired end-to-end but inert — those features aren't in <code>SUPPORTED_FEATURES</code>. They remain for future hardware.</li>
+<li>Voltage sensing requires <code>IGN_SENSE_ANALOG true</code> (ADC divider build); the current digital-opto build never sends <code>VOLTAGE</code>. The "Has Voltage Sensing (ADC)" toggle in Edit Vehicle is for analog builds only.</li>
+<li>Engine/windows features are unused on this board; firmware tracks no engine state (<code>GET_DATA</code> doesn't report it).</li>
+<li><code>main.cpp</code> keeps <code>_doorsLocked</code>/<code>_trunkRequiresUnlocked</code> updated even though nothing on this board consumes them (the trunk guard is app-side now).</li>
+</ul>
+<h2 id="dependencies">Dependencies</h2>
+<p>Constraints in <code>pubspec.yaml</code> carry comments explaining every deliberate hold — <strong>read them before bumping</strong>: <code>flutter_blue_plus</code> stays on 1.x (2.x is commercially licensed), <code>flutter_secure_storage</code> stays on 9.x (10.x cipher/<code>resetOnError</code> defaults risk wiping stored secrets), <code>home_widget</code> 0.8.x is tied to the glance 1.1.1 force-pin in <code>android/build.gradle</code>, and <code>flutter_local_notifications</code> stays below 20 (breaking <code>show()</code> signature change). The firmware pins <code>espressif32@^6.x</code> — platform 7.x means an Arduino core 3 migration, done deliberately. Last full dependency review: see <code>AUDITS.md</code>.</p></div>
+    <div class="links"></div>
+    <nav class="pn"><span></span><a class="r" href="lock-controller.html"><small>Next →</small>Lock Controller</a></nav>
+  </article>
+</div>
+
+<footer>Open-source hardware and firmware by <a href="https://github.com/DefeatedWarrior">DefeatedWarrior</a>. Documentation pages are rendered from each project's repository.</footer>
+</body>
+</html>

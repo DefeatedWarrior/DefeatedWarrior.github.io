@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>FAQ · Ghostlight Node</title>
+<meta name="description" content="FAQ: documentation for Ghostlight Node">
+<link rel="stylesheet" href="../../assets/style.css">
+
+</head>
+<body>
+<header class="site-header"><div class="in">
+  <a class="brand" href="../../index.html"><span class="bulb"></span>DefeatedWarrior</a>
+  <nav>
+    <a href="../../index.html#projects">Projects</a><a href="../../docs.html">Docs</a><a href="https://github.com/DefeatedWarrior">GitHub</a>
+    <form class="search" action="../../search.html" method="get" role="search"><input type="search" name="q" placeholder="Search docs…" aria-label="Search docs"></form>
+  </nav>
+</div></header>
+
+<div class="page">
+  <aside class="toc docs-nav"><a class="back" href="../../index.html#projects">← All projects</a>
+<a class="proj" href="../ghostlight-node.html">Ghostlight Node</a>
+<h4>Wiki</h4>
+<a href="wiki-home.html">Wiki home</a>
+<a href="getting-started.html">Getting Started</a>
+<a href="hardware-overview.html">Hardware Overview</a>
+<a href="power.html">Power</a>
+<a href="pin-map.html">Pin Map</a>
+<a href="connectors.html">Connectors</a>
+<a href="dmx-ports.html">DMX Ports</a>
+<a href="dmx-wiring.html">DMX Wiring</a>
+<a href="ethernet-and-poe.html">Ethernet and PoE</a>
+<a href="ordering-guide.html">Ordering Guide</a>
+<a href="bill-of-materials.html">Bill of Materials</a>
+<a href="assembly-guide.html">Assembly Guide</a>
+<a href="bring-up-checklist.html">Bring-up Checklist</a>
+<a href="firmware.html">Firmware</a>
+<a href="using-the-node.html">Using the Node</a>
+<a href="troubleshooting.html">Troubleshooting</a>
+<a href="known-issues.html">Known Issues</a>
+<a class="cur" href="faq.html">FAQ</a>
+<a href="glossary.html">Glossary</a>
+<a href="roadmap.html">Roadmap</a>
+<a href="contributing.html">Contributing</a>
+<h4>Reference docs</h4>
+<a href="01-overview-and-specifications.html">1. Overview and specifications</a>
+<a href="02-architecture-and-power.html">2. Architecture and power tree</a>
+<a href="03-pinout-and-connectors.html">3. Pin map and connectors</a>
+<a href="04-ethernet-and-poe.html">4. Ethernet and PoE</a>
+<a href="05-dmx-ports.html">5. DMX / RS-485 ports</a>
+<a href="06-usb-programming-debug.html">6. USB, programming and debug</a>
+<a href="07-bom-and-sourcing.html">7. Bill of materials and sourcing</a>
+<a href="08-ordering-guide.html">8. Ordering guide</a>
+<a href="09-assembly-guide.html">9. Assembly guide (hand assembly)</a>
+<a href="10-bring-up-and-test.html">10. Bring-up and test plan</a>
+<a href="11-known-issues-and-verification-status.html">11. Known issues and verification status</a>
+<a href="12-pcb-design-notes.html">12. PCB design notes</a>
+<a href="13-firmware-integration.html">13. Firmware integration</a>
+<a href="14-regenerating-the-design.html">14. Regenerating the design</a>
+<a href="15-roadmap.html">15. Roadmap and ideas for rev2</a>
+<h4>Firmware (upstream ESP-NODE-2RDM)</h4>
+<a href="firmware-overview.html">Firmware overview</a>
+<a href="component-dmx-handler.html">DMX handler component</a>
+<a href="component-network-manager.html">Network manager component</a></aside>
+  <article class="doc">
+    <div class="crumbs"><a href="../../index.html">Home</a> / <a href="../ghostlight-node.html">Ghostlight Node</a> / Wiki</div>
+    <h1>FAQ</h1>
+    
+    <div class="md"><p><strong>Is it tested?</strong> No. rev1 has not been manufactured, and the firmware changes are unbuilt.</p>
+<p><strong>Why N8 instead of N16R8?</strong> The firmware is about 1.1 MB and does not need PSRAM, so the cheaper module is enough.</p>
+<p><strong>Why SN65HVD72?</strong> It is a 250 kbps part with receiver fail-safe for open, short and idle buses, which suits DMX and RDM. The SP3485 is only fail-safe for open inputs and has weaker ESD.</p>
+<p><strong>Can I use a different RS-485 chip?</strong> Yes if it uses the standard SOIC-8 pinout, states open/short/idle fail-safe and has adequate ESD.</p>
+<p><strong>Does it do RDM?</strong> Hardware is bidirectional and the firmware has an RDM stack; neither has been tested on this board.</p>
+<p><strong>Can I skip PoE?</strong> Yes. Leave PS1 and C50 unpopulated and use USB or J6.</p>
+<p><strong>Can I add a third port?</strong> J5 provides UART0, DIR3, BIAS3, LED3 and spare GPIOs. UART0 is shared with the debug header, so use USB as console.</p>
+<p><strong>Why 100 × 100 mm?</strong> JLCPCB's cheapest price tier has historically stopped there.</p>
+<p><strong>Can I sell it?</strong> The licence allows it (CERN-OHL-P-2.0, permissive). The name "Ghostlight Node" is not trademark-cleared.</p>
+<p><strong>Why does the firmware say ESP-NODE-2RDM?</strong> That is the original firmware project name; the board is still reported under it.</p></div>
+    <div class="links"><a class="btn small" href="https://github.com/DefeatedWarrior/ghostlight-node/blob/main/wiki/FAQ.md">View source on GitHub</a></div>
+    <nav class="pn"><a href="known-issues.html"><small>← Previous</small>Known Issues</a><a class="r" href="glossary.html"><small>Next →</small>Glossary</a></nav>
+  </article>
+</div>
+
+<footer>Open-source hardware and firmware by <a href="https://github.com/DefeatedWarrior">DefeatedWarrior</a>. Documentation pages are rendered from each project's repository.</footer>
+</body>
+</html>

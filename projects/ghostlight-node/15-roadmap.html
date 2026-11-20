@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>15. Roadmap and ideas for rev2 · Ghostlight Node</title>
+<meta name="description" content="15. Roadmap and ideas for rev2: documentation for Ghostlight Node">
+<link rel="stylesheet" href="../../assets/style.css">
+
+</head>
+<body>
+<header class="site-header"><div class="in">
+  <a class="brand" href="../../index.html"><span class="bulb"></span>DefeatedWarrior</a>
+  <nav>
+    <a href="../../index.html#projects">Projects</a><a href="../../docs.html">Docs</a><a href="https://github.com/DefeatedWarrior">GitHub</a>
+    <form class="search" action="../../search.html" method="get" role="search"><input type="search" name="q" placeholder="Search docs…" aria-label="Search docs"></form>
+  </nav>
+</div></header>
+
+<div class="page">
+  <aside class="toc docs-nav"><a class="back" href="../../index.html#projects">← All projects</a>
+<a class="proj" href="../ghostlight-node.html">Ghostlight Node</a>
+<h4>Wiki</h4>
+<a href="wiki-home.html">Wiki home</a>
+<a href="getting-started.html">Getting Started</a>
+<a href="hardware-overview.html">Hardware Overview</a>
+<a href="power.html">Power</a>
+<a href="pin-map.html">Pin Map</a>
+<a href="connectors.html">Connectors</a>
+<a href="dmx-ports.html">DMX Ports</a>
+<a href="dmx-wiring.html">DMX Wiring</a>
+<a href="ethernet-and-poe.html">Ethernet and PoE</a>
+<a href="ordering-guide.html">Ordering Guide</a>
+<a href="bill-of-materials.html">Bill of Materials</a>
+<a href="assembly-guide.html">Assembly Guide</a>
+<a href="bring-up-checklist.html">Bring-up Checklist</a>
+<a href="firmware.html">Firmware</a>
+<a href="using-the-node.html">Using the Node</a>
+<a href="troubleshooting.html">Troubleshooting</a>
+<a href="known-issues.html">Known Issues</a>
+<a href="faq.html">FAQ</a>
+<a href="glossary.html">Glossary</a>
+<a href="roadmap.html">Roadmap</a>
+<a href="contributing.html">Contributing</a>
+<h4>Reference docs</h4>
+<a href="01-overview-and-specifications.html">1. Overview and specifications</a>
+<a href="02-architecture-and-power.html">2. Architecture and power tree</a>
+<a href="03-pinout-and-connectors.html">3. Pin map and connectors</a>
+<a href="04-ethernet-and-poe.html">4. Ethernet and PoE</a>
+<a href="05-dmx-ports.html">5. DMX / RS-485 ports</a>
+<a href="06-usb-programming-debug.html">6. USB, programming and debug</a>
+<a href="07-bom-and-sourcing.html">7. Bill of materials and sourcing</a>
+<a href="08-ordering-guide.html">8. Ordering guide</a>
+<a href="09-assembly-guide.html">9. Assembly guide (hand assembly)</a>
+<a href="10-bring-up-and-test.html">10. Bring-up and test plan</a>
+<a href="11-known-issues-and-verification-status.html">11. Known issues and verification status</a>
+<a href="12-pcb-design-notes.html">12. PCB design notes</a>
+<a href="13-firmware-integration.html">13. Firmware integration</a>
+<a href="14-regenerating-the-design.html">14. Regenerating the design</a>
+<a class="cur" href="15-roadmap.html">15. Roadmap and ideas for rev2</a>
+<div class="sub"><a href="#fix-first-from-the-first-built-board">Fix first (from the first built board)</a><a href="#cheap-improvements">Cheap improvements</a><a href="#variants">Variants</a><a href="#larger-ideas">Larger ideas</a></div>
+<h4>Firmware (upstream ESP-NODE-2RDM)</h4>
+<a href="firmware-overview.html">Firmware overview</a>
+<a href="component-dmx-handler.html">DMX handler component</a>
+<a href="component-network-manager.html">Network manager component</a></aside>
+  <article class="doc">
+    <div class="crumbs"><a href="../../index.html">Home</a> / <a href="../ghostlight-node.html">Ghostlight Node</a> / Reference docs</div>
+    <h1>15. Roadmap and ideas for rev2</h1>
+    
+    <div class="md"><h2 id="fix-first-from-the-first-built-board">Fix first (from the first built board)</h2>
+<ul>
+<li>Correct anything found in <a href="11-known-issues-and-verification-status.html">docs/11</a> and <a href="10-bring-up-and-test.html">docs/10</a>: jack pin map, PoE orientation, W5500 analog network, DMX polarity and bias, LED currents.</li>
+<li>Run KiCad ERC in the GUI and clear the annotation warning.</li>
+</ul>
+<h2 id="cheap-improvements">Cheap improvements</h2>
+<ul>
+<li><strong>Test points</strong> on +3V3, +5V, 5V_EXT, GND, DMX A / B and the W5500 SPI lines.</li>
+<li><strong>Port LED resistors</strong> to 330 ohm so the LEDs are visible.</li>
+<li><strong>Bulk capacitors</strong> to 10 V rating on the 5 V rails.</li>
+<li><strong>Enclosure drawing</strong> and an XLR panel template.</li>
+<li>Consider <strong>driving W5500 reset</strong> and the <strong>bias pins</strong> from the firmware.</li>
+</ul>
+<h2 id="variants">Variants</h2>
+<ul>
+<li><strong>PoE-optional</strong> board: leave out the PS1 module and C50 (a BOM variant, same board).</li>
+<li><strong>Isolated DMX</strong> variant using an isolated RS-485 transceiver and an isolated DC-DC, if ground loops between USB and the lighting rig are a problem.</li>
+<li><strong>XLR-5 panel</strong> variant with the XLR connectors on a small daughterboard.</li>
+</ul>
+<h2 id="larger-ideas">Larger ideas</h2>
+<ul>
+<li><strong>Port 3 / port 4 daughterboard</strong> on J5 (transceiver on UART0, DIR3, BIAS3, LED3). If more than one extra port is wanted, an SPI-to-UART bridge (for example an SC16IS752 or MAX14830) on four of the J5 GPIOs could drive more ports, with polling instead of an interrupt line (there is no spare interrupt pin on J5 in rev1).</li>
+<li><strong>OLED display and a user button</strong> on the J5 spare GPIOs for local configuration.</li>
+<li><strong>microSD slot</strong> for show files (needs four SPI-capable pins, which is all of J5's spare GPIOs).</li>
+<li><strong>RTC with a coin cell</strong> for scheduled playback.</li>
+</ul></div>
+    <div class="links"><a class="btn small" href="https://github.com/DefeatedWarrior/ghostlight-node/blob/main/docs/15-roadmap.md">View source on GitHub</a></div>
+    <nav class="pn"><a href="14-regenerating-the-design.html"><small>← Previous</small>14. Regenerating the design</a><a class="r" href="firmware-overview.html"><small>Next →</small>Firmware overview</a></nav>
+  </article>
+</div>
+
+<footer>Open-source hardware and firmware by <a href="https://github.com/DefeatedWarrior">DefeatedWarrior</a>. Documentation pages are rendered from each project's repository.</footer>
+</body>
+</html>

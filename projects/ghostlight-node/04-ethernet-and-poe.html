@@ -1,0 +1,257 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>4. Ethernet and PoE · Ghostlight Node</title>
+<meta name="description" content="4. Ethernet and PoE: documentation for Ghostlight Node">
+<link rel="stylesheet" href="../../assets/style.css">
+
+</head>
+<body>
+<header class="site-header"><div class="in">
+  <a class="brand" href="../../index.html"><span class="bulb"></span>DefeatedWarrior</a>
+  <nav>
+    <a href="../../index.html#projects">Projects</a><a href="../../docs.html">Docs</a><a href="https://github.com/DefeatedWarrior">GitHub</a>
+    <form class="search" action="../../search.html" method="get" role="search"><input type="search" name="q" placeholder="Search docs…" aria-label="Search docs"></form>
+  </nav>
+</div></header>
+
+<div class="page">
+  <aside class="toc docs-nav"><a class="back" href="../../index.html#projects">← All projects</a>
+<a class="proj" href="../ghostlight-node.html">Ghostlight Node</a>
+<h4>Wiki</h4>
+<a href="wiki-home.html">Wiki home</a>
+<a href="getting-started.html">Getting Started</a>
+<a href="hardware-overview.html">Hardware Overview</a>
+<a href="power.html">Power</a>
+<a href="pin-map.html">Pin Map</a>
+<a href="connectors.html">Connectors</a>
+<a href="dmx-ports.html">DMX Ports</a>
+<a href="dmx-wiring.html">DMX Wiring</a>
+<a href="ethernet-and-poe.html">Ethernet and PoE</a>
+<a href="ordering-guide.html">Ordering Guide</a>
+<a href="bill-of-materials.html">Bill of Materials</a>
+<a href="assembly-guide.html">Assembly Guide</a>
+<a href="bring-up-checklist.html">Bring-up Checklist</a>
+<a href="firmware.html">Firmware</a>
+<a href="using-the-node.html">Using the Node</a>
+<a href="troubleshooting.html">Troubleshooting</a>
+<a href="known-issues.html">Known Issues</a>
+<a href="faq.html">FAQ</a>
+<a href="glossary.html">Glossary</a>
+<a href="roadmap.html">Roadmap</a>
+<a href="contributing.html">Contributing</a>
+<h4>Reference docs</h4>
+<a href="01-overview-and-specifications.html">1. Overview and specifications</a>
+<a href="02-architecture-and-power.html">2. Architecture and power tree</a>
+<a href="03-pinout-and-connectors.html">3. Pin map and connectors</a>
+<a class="cur" href="04-ethernet-and-poe.html">4. Ethernet and PoE</a>
+<div class="sub"><a href="#w5500-ethernet">W5500 Ethernet</a><a href="#poe-8023af">PoE (802.3af)</a></div>
+<a href="05-dmx-ports.html">5. DMX / RS-485 ports</a>
+<a href="06-usb-programming-debug.html">6. USB, programming and debug</a>
+<a href="07-bom-and-sourcing.html">7. Bill of materials and sourcing</a>
+<a href="08-ordering-guide.html">8. Ordering guide</a>
+<a href="09-assembly-guide.html">9. Assembly guide (hand assembly)</a>
+<a href="10-bring-up-and-test.html">10. Bring-up and test plan</a>
+<a href="11-known-issues-and-verification-status.html">11. Known issues and verification status</a>
+<a href="12-pcb-design-notes.html">12. PCB design notes</a>
+<a href="13-firmware-integration.html">13. Firmware integration</a>
+<a href="14-regenerating-the-design.html">14. Regenerating the design</a>
+<a href="15-roadmap.html">15. Roadmap and ideas for rev2</a>
+<h4>Firmware (upstream ESP-NODE-2RDM)</h4>
+<a href="firmware-overview.html">Firmware overview</a>
+<a href="component-dmx-handler.html">DMX handler component</a>
+<a href="component-network-manager.html">Network manager component</a></aside>
+  <article class="doc">
+    <div class="crumbs"><a href="../../index.html">Home</a> / <a href="../ghostlight-node.html">Ghostlight Node</a> / Reference docs</div>
+    <h1>4. Ethernet and PoE</h1>
+    
+    <div class="md"><h2 id="w5500-ethernet">W5500 Ethernet</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Item</th>
+<th>Value</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Controller</td>
+<td>WIZnet W5500 (LQFP-48, U2), SPI to the ESP32-S3</td>
+</tr>
+<tr>
+<td>SPI</td>
+<td>CS GPIO10, MOSI GPIO11, SCK GPIO12, MISO GPIO13, INT GPIO9, RST GPIO4</td>
+</tr>
+<tr>
+<td>Clock</td>
+<td>25 MHz crystal Y1 (HCI XC32M4-25.000-F20NJDT, 20 pF load), 18 pF caps C19 / C20, 1 M across the crystal (R7)</td>
+</tr>
+<tr>
+<td>Mode</td>
+<td>PMODE pins 43-45 tied together to 3V3 through R8 (10 k): tied high so the W5500 starts in all-capable auto-negotiation mode (PMODE 111; confirm against the W5500 datasheet)</td>
+</tr>
+<tr>
+<td>Pull-ups</td>
+<td>R9 on RST, R10 on CS, R11 on INT (10 k each, to 3V3)</td>
+</tr>
+<tr>
+<td>Analog supply</td>
+<td>3V3 through ferrite bead L1 (BLM18AG121SN1D, 120 ohm @ 100 MHz) to <code>AVDD</code>, with 4 x 100 nF (C10-C13) and 10 uF (C14)</td>
+</tr>
+<tr>
+<td>Other analog network</td>
+<td>R6 12.4 k 1 % on EXRES1, C16 22 nF on VBG, C17 4.7 uF on TOCAP, C18 10 uF on V1P2, C15 100 nF on 3V3</td>
+</tr>
+</tbody>
+</table></div>
+<p>The W5500's analog network values were inferred from the WIZnet reference design and <strong>have not been compared line by line to the current reference schematic</strong>. Do that before volume production (see <a href="11-known-issues-and-verification-status.html">docs/11</a>).</p>
+<h3 id="magjack-j1-hanrun-hr871150c">Magjack (J1, Hanrun HR871150C)</h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Jack pin</th>
+<th>Net</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>TXP</td>
+<td>to W5500 pin 2</td>
+</tr>
+<tr>
+<td>2</td>
+<td>TXN</td>
+<td>to W5500 pin 1</td>
+</tr>
+<tr>
+<td>3</td>
+<td>TCT</td>
+<td>TX centre tap, decoupled to 3V3 through C21 (100 nF)</td>
+</tr>
+<tr>
+<td>4</td>
+<td>RXP</td>
+<td>to W5500 pin 6</td>
+</tr>
+<tr>
+<td>5</td>
+<td>RXN</td>
+<td>to W5500 pin 5</td>
+</tr>
+<tr>
+<td>6</td>
+<td>not connected</td>
+<td></td>
+</tr>
+<tr>
+<td>7, 8</td>
+<td>POE_A1, POE_A2</td>
+<td>PoE centre taps, pairs 1/2 and 3/6</td>
+</tr>
+<tr>
+<td>9, 10</td>
+<td>POE_B1, POE_B2</td>
+<td>PoE centre taps, spare pairs 4/5 and 7/8</td>
+</tr>
+<tr>
+<td>11</td>
+<td>JLED_ACT_A</td>
+<td>activity LED anode, through R50 (220 ohm) to 3V3</td>
+</tr>
+<tr>
+<td>12</td>
+<td>LED_ACT</td>
+<td>activity LED cathode, to W5500 ACTLED (pin 27)</td>
+</tr>
+<tr>
+<td>13</td>
+<td>JLED_LNK_A</td>
+<td>link LED anode, through R51 (220 ohm) to 3V3</td>
+</tr>
+<tr>
+<td>14</td>
+<td>LED_LINK</td>
+<td>link LED cathode, to W5500 LINKLED (pin 25)</td>
+</tr>
+<tr>
+<td>SH</td>
+<td>CHASSIS</td>
+<td>shield, tied to GND through 10 nF (C23) and 1 M (R12)</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Verify the pin map before relying on it.</strong> It was decoded from the jack's datasheet drawing (the label text could not be extracted), not from a physical sample. The jack footprint is the custom <code>ESPNODE:RJ45_Hanrun_HR871150C</code>. Check TX/RX pair orientation, the PoE centre tap pins, and the LED polarity with a continuity test on the first board.</p>
+<p>The W5500 LED outputs sink the LED current. With a 220 ohm resistor from 3.3 V and a typical LED forward voltage near 2 V, the current is roughly 6 mA. Check that against the W5500's LED output drive rating; if it is too high, raise R50 / R51 (a larger resistor only dims the LED).</p>
+<p>The Ethernet pairs run about 35-45 mm on the board. They are not impedance-controlled or length-matched, which is acceptable for 10/100 Mbps.</p>
+<h2 id="poe-8023af">PoE (802.3af)</h2>
+<p>PoE is provided by an <strong>SDAPO DP9700-5V</strong> isolated PD module (PS1). The module provides detection, classification, an isolated DC-DC converter and a 5 V / 2 A output, so the board does not need its own PD controller.</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Module pin</th>
+<th>Net</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>POE_A1</td>
+<td>VA1: centre tap of pairs 1/2</td>
+</tr>
+<tr>
+<td>2</td>
+<td>POE_A2</td>
+<td>VA2: centre tap of pairs 3/6</td>
+</tr>
+<tr>
+<td>3</td>
+<td>POE_B1</td>
+<td>VB1: spare pairs 4/5</td>
+</tr>
+<tr>
+<td>4</td>
+<td>POE_B2</td>
+<td>VB2: spare pairs 7/8</td>
+</tr>
+<tr>
+<td>5, 6, 9, 10</td>
+<td>not connected</td>
+<td></td>
+</tr>
+<tr>
+<td>7</td>
+<td>GND</td>
+<td>output - (-VDC)</td>
+</tr>
+<tr>
+<td>8</td>
+<td>5V_EXT</td>
+<td>output + (+VDC)</td>
+</tr>
+</tbody>
+</table></div>
+<ul>
+<li>Input range per the module datasheet: 37-57 V. Output 5 V, 2 A. Isolation 1.5 kV.</li>
+<li>The module output goes to <code>5V_EXT</code> (bulk C50, 220 uF), then through D4 (SS14) into the <code>+5V</code> rail.</li>
+<li>Spare-pair (mode B) and data-pair (mode A) PoE are both connected to the module.</li>
+</ul>
+<h3 id="checks-before-applying-poe">Checks before applying PoE</h3>
+<ol>
+<li><strong>Module orientation.</strong> The footprint reserves about 10.5 mm either side of the pin row. Confirm against a real module that the body sits on the correct side of pin 1 and does not collide with C50 or the terminals.</li>
+<li><strong>Output voltage with no load</strong>, measured at C50 before the board's logic is powered from it.</li>
+<li><strong>Test with a proper 802.3af PoE switch or injector.</strong> Never connect a passive 24 V or 48 V injector until you have checked that the injector supports 802.3af detection.</li>
+<li>See <a href="10-bring-up-and-test.html">docs/10</a>: PoE is the last step of the bring-up.</li>
+</ol></div>
+    <div class="links"><a class="btn small" href="https://github.com/DefeatedWarrior/ghostlight-node/blob/main/docs/04-ethernet-and-poe.md">View source on GitHub</a></div>
+    <nav class="pn"><a href="03-pinout-and-connectors.html"><small>← Previous</small>3. Pin map and connectors</a><a class="r" href="05-dmx-ports.html"><small>Next →</small>5. DMX / RS-485 ports</a></nav>
+  </article>
+</div>
+
+<footer>Open-source hardware and firmware by <a href="https://github.com/DefeatedWarrior">DefeatedWarrior</a>. Documentation pages are rendered from each project's repository.</footer>
+</body>
+</html>

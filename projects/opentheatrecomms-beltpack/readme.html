@@ -1,0 +1,132 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Repository README · OpenTheatreComms Beltpack</title>
+<meta name="description" content="Repository README: documentation for OpenTheatreComms Beltpack">
+<link rel="stylesheet" href="../../assets/style.css">
+
+</head>
+<body>
+<header class="site-header"><div class="in">
+  <a class="brand" href="../../index.html"><span class="bulb"></span>DefeatedWarrior</a>
+  <nav>
+    <a href="../../index.html#projects">Projects</a><a href="../../docs.html">Docs</a><a href="https://github.com/DefeatedWarrior">GitHub</a>
+    <form class="search" action="../../search.html" method="get" role="search"><input type="search" name="q" placeholder="Search docs…" aria-label="Search docs"></form>
+  </nav>
+</div></header>
+
+<div class="page">
+  <aside class="toc docs-nav"><a class="back" href="../../index.html#projects">← All projects</a>
+<a class="proj" href="../opentheatrecomms-beltpack.html">OpenTheatreComms Beltpack</a>
+<h4>Design</h4>
+<a href="parts-list.html">Parts list</a>
+<a href="printed-parts.html">Printed parts</a>
+<h4>Repository docs</h4>
+<a class="cur" href="readme.html">Repository README</a>
+<div class="sub"><a href="#whats-here">What's here</a><a href="#the-pack">The pack</a><a href="#rebuilding">Rebuilding</a><a href="#status">Status</a></div>
+<a href="kicad-starter-pack.html">OpenTheatreComms beltpack: KiCad starter pack</a>
+<a href="board-hand-off.html">Beltpack boards: KiCad hand-off</a></aside>
+  <article class="doc">
+    <div class="crumbs"><a href="../../index.html">Home</a> / <a href="../opentheatrecomms-beltpack.html">OpenTheatreComms Beltpack</a> / Repository docs</div>
+    <h1>Repository README</h1>
+    
+    <div class="md"><p>An open, DIY full-duplex wireless theatre intercom beltpack in the spirit of the Hollyland Solidcom M1 and Clear-Com FreeSpeak II.
+It uses an ESP32-S3 with an LR2021 radio on 915–928 MHz (Australia), talks to PoE base stations over a 20 ms TDMA frame,
+and is 3D printed and hand-assembled.</p>
+<p><img alt="Render sheet" src="../../assets/docimg/opentheatrecomms-beltpack/renders/beltpack_final_sheet.png"  loading="lazy"></p>
+<h2 id="whats-here">What's here</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Path</th>
+<th>Contents</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>cad/final_bp.py</code></td>
+<td>CadQuery model of the whole beltpack: shells, TPU caps, dials, keys, both PCBs and every bought part as a datasheet envelope</td>
+</tr>
+<tr>
+<td><code>cad/geom.py</code></td>
+<td>Shared shape helpers (the curved pill plan, edge fillets, the flat-top frame)</td>
+</tr>
+<tr>
+<td><code>cad/clash.py</code></td>
+<td>Pairwise interference check across all 71 parts</td>
+</tr>
+<tr>
+<td><code>cad/export_boards.py</code></td>
+<td>KiCad hand-off: DXF outlines with true arcs, placement layers and dimensioned drawings</td>
+</tr>
+<tr>
+<td><code>cad/make_kicad.py</code>, <code>cad/make_enclosure_ref.py</code></td>
+<td>Build the KiCad projects (needs KiCad's <code>pcbnew</code> Python module) and the enclosure STEP</td>
+</tr>
+<tr>
+<td><code>cad/section.py</code>, <code>cad/size_table.py</code></td>
+<td>Section drawings and the placement CSV</td>
+</tr>
+<tr>
+<td><code>cad/out/beltpack_final.step</code></td>
+<td>Full assembly (STEP)</td>
+</tr>
+<tr>
+<td><code>cad/out/stl/</code></td>
+<td>Every printed part as STL</td>
+</tr>
+<tr>
+<td><code>cad/out/kicad/</code></td>
+<td>Board outlines (DXF), drawings, placement CSV</td>
+</tr>
+<tr>
+<td><code>kicad/</code></td>
+<td>Ready-to-open KiCad projects for the three boards, the enclosure STEP for the 3D viewer, and a placement script</td>
+</tr>
+<tr>
+<td><code>renders/</code></td>
+<td>Render sheet and individual renders</td>
+</tr>
+<tr>
+<td><code>viewer/</code></td>
+<td>Interactive three.js viewer (open <code>viewer/index.html</code> from a local web server)</td>
+</tr>
+</tbody>
+</table></div>
+<p>The firmware and system architecture, the BOM and the open decisions live in the
+architecture doc. The 3D viewer
+is the same page as <code>viewer/</code>.</p>
+<h2 id="the-pack">The pack</h2>
+<ul>
+<li><strong>Size:</strong> 105 × 77 × 30 mm shell (108 × 81 × 35 mm with the TPU caps, 39 mm deep with the belt plate). The back follows a 400 mm radius to sit on the hip.</li>
+<li><strong>Controls:</strong> four talk keys and a 1.3 in OLED on the flat top, a detented dial at each round end, Back / Function / Menu in a recessed panel on the front.</li>
+<li><strong>Bottom:</strong> XLR-4 male (D-type), power button, USB-C, 3.5 mm TRRS, flashlight.</li>
+<li><strong>Power:</strong> a 104050 Li-ion pack (2500 mAh) forms the back of the case; the belt plate slides up its rails and locks it in.</li>
+<li><strong>Boards:</strong> a curved top PCB (99.8 × 26.5 mm) under the keys carrying the OLED and both encoders, and a vertical main PCB (87.5 × 64.5 mm) carrying the MCU, radio, codec, power and connectors. A 10-way JST SH cable links them.</li>
+<li><strong>Radio:</strong> an Elecrow LR2021 module on 915–928 MHz with switched antenna diversity: a pSemi PE4259 picks between two flex antennas, one inside each round end, every frame.</li>
+</ul>
+<h2 id="rebuilding">Rebuilding</h2>
+<p>Needs Python 3 with <code>cadquery</code>, <code>ezdxf</code>, <code>matplotlib</code> and <code>Pillow</code>.</p>
+<pre><code class="language-sh">cd cad
+python3 final_bp.py       # model, STEP, GLB, STLs, parts_final.json (about a minute)
+python3 clash.py          # interference check: expect &quot;CLASHES: 0&quot;
+python3 export_boards.py  # DXFs and drawings into out/kicad
+python3 section.py        # section drawings
+python3 size_table.py     # placement.csv
+python3 build_viewer.py   # viewer/index.html + viewer/beltpack.json
+python3 make_enclosure_ref.py &amp;&amp; python3 make_kicad.py   # KiCad projects in ../kicad (needs KiCad 7+)
+</code></pre>
+<h2 id="status">Status</h2>
+<p>This is a reference model to start KiCad layout, not a released design. A few part envelopes are typical sizes still to check against
+the exact parts you buy: the PEC12R body height, the XLR D-flange and depth, USB4105, the PTS815 height variant, the side tact switch,
+the JST SH bodies and where the OLED panel's active area sits on its glass. See <code>cad/out/kicad/README.md</code>.</p></div>
+    <div class="links"><a class="btn small" href="https://github.com/DefeatedWarrior/OpenTheatreComms-Beltpack/blob/main/README.md">View source on GitHub</a></div>
+    <nav class="pn"><a href="printed-parts.html"><small>← Previous</small>Printed parts</a><a class="r" href="kicad-starter-pack.html"><small>Next →</small>OpenTheatreComms beltpack: KiCad starter pack</a></nav>
+  </article>
+</div>
+
+<footer>Open-source hardware and firmware by <a href="https://github.com/DefeatedWarrior">DefeatedWarrior</a>. Documentation pages are rendered from each project's repository.</footer>
+</body>
+</html>

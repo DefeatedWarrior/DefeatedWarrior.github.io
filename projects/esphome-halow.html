@@ -1,0 +1,86 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>esphome-halow · DefeatedWarrior</title>
+<meta name="description" content="ESPHome external component for Wi-Fi HaLow (802.11ah) on the Morse Micro MM6108.">
+<link rel="stylesheet" href="../assets/style.css">
+
+</head>
+<body>
+<header class="site-header"><div class="in">
+  <a class="brand" href="../index.html"><span class="bulb"></span>DefeatedWarrior</a>
+  <nav>
+    <a href="../index.html#projects">Projects</a><a href="../docs.html">Docs</a><a href="https://github.com/DefeatedWarrior">GitHub</a>
+    <form class="search" action="../search.html" method="get" role="search"><input type="search" name="q" placeholder="Search docs…" aria-label="Search docs"></form>
+  </nav>
+</div></header>
+
+<div class="page">
+  <aside class="toc"><a class="back" href="../index.html#projects">← All projects</a><h4>On this page</h4><a href="#what">What it does</a><a href="#why">Why HaLow</a><a href="#mine">This fork's changes</a><a href="#status">Status</a><a href="#hardware">Hardware</a><a href="#quick">Quick start</a><a href="#credits">Credits</a><a href="#docs-index">Documentation</a></aside>
+  <article>
+    <div class="crumbs"><a href="../index.html">Home</a> / Projects / esphome-halow</div>
+    <h1>esphome-halow</h1>
+    <p class="sub">ESPHome component for Wi-Fi HaLow (802.11ah) on the Morse Micro MM6108, updated for ESPHome 2026.x.</p>
+    <p><span class="badge fork">Fork</span> <span class="badge working">Tested on hardware</span></p>
+    <dl class="facts"><div><dt>Repository</dt><dd><a href="https://github.com/DefeatedWarrior/esphome-halow">DefeatedWarrior/esphome-halow</a></dd></div><div><dt>Upstream</dt><dd><a href="https://github.com/sweitzja/esphome-halow">sweitzja/esphome-halow</a></dd></div><div><dt>Targets</dt><dd>ESPHome 2026.9.1, ESP-IDF 5.5.5</dd></div><div><dt>Radio</dt><dd>Morse Micro MM6108</dd></div></dl>
+    
+<h2 id="what">What it does</h2>
+<p>An ESPHome external component that replaces <code>wifi:</code> with <code>halow:</code>. Set the SSID, password and region in YAML and the device joins a HaLow access point with full IP networking, so the Home Assistant API, OTA updates, mDNS and MQTT all work over sub-1 GHz radio with up to roughly 1 km of range.</p>
+
+<h2 id="why">Why HaLow over LoRa?</h2>
+<p>HaLow uses standard IP networking: TCP, UDP, DHCP, mDNS, MQTT and the ESPHome API all work natively, with no protocol translation, gateway bridges or TTN accounts. Home Assistant sees the device directly, OTA works over the same link, and bidirectional control is fast. LoRa still wins on raw range and power for simple one-way sensors; for anything needing reliable two-way communication, HaLow is cleaner.</p>
+
+<h2 id="mine">This fork's changes</h2>
+<p>Forked from sweitzja/esphome-halow so the component builds and runs on ESPHome 2026.x, the native ESP-IDF toolchain used by the Home Assistant ESPHome Builder. Highlights from the commit history:</p>
+<ul>
+<li>Fixed build and boot on ESPHome 2026.x.</li>
+<li>Fixed Home Assistant API connections dropping on 2026.x, plus a reconnect race and a reconnect stall.</li>
+<li>Added a <code>use_address</code> option so the Device Builder can find a device on a separate subnet, including the cached logs and upload path.</li>
+<li>Static IP DNS fix and SDK download cleanup from a second review pass.</li>
+<li>Reorganised the repo and added reference docs and test tools, such as a serial watcher.</li>
+</ul>
+<p>Every change is listed with its reasoning in <code>PATCHES.md</code>, and the pre-review state is kept on the <code>pre-improvements</code> branch.</p>
+
+<h2 id="status">Status</h2>
+<table>
+<tr><th></th><th>Original component</th><th>This fork</th></tr>
+<tr><td>ESPHome</td><td>Before 2026.x (PlatformIO toolchain)</td><td>2026.9.1 (native ESP-IDF 5.5.5)</td></tr>
+<tr><td>Boots MM6108, joins WPA3-SAE AP, DHCP, mDNS</td><td>Tested</td><td>Tested</td></tr>
+<tr><td>HA API, OTA, reconnect, 20-min soak</td><td>Tested</td><td>Fixed for 2026.x and compile-verified; not yet re-tested on hardware</td></tr>
+</table>
+
+<h2 id="hardware">Hardware</h2>
+<table>
+<tr><th>Part</th><th>Status</th></tr>
+<tr><td>Seeed Wio-WM6180 HaLow module for XIAO (MM6108)</td><td>Tested</td></tr>
+<tr><td>Seeed XIAO ESP32-S3</td><td>Tested</td></tr>
+<tr><td>GL-iNet HaLowLink 2 access point (AP mode, bridged)</td><td>Tested</td></tr>
+<tr><td>ESP32-C3 / C6 / P4</td><td>Untested</td></tr>
+</table>
+<p>The module's transmit amplifier runs from the 5 V pin and surges when the radio powers up, so use a good USB cable or a powered hub; a weak supply shows up as a reset at "Connecting".</p>
+
+<h2 id="quick">Quick start</h2>
+<pre><code>external_components:
+  - source: github://DefeatedWarrior/esphome-halow
+    components: [halow]
+
+halow:                       # replaces wifi:
+  ssid: !secret halow_ssid
+  password: !secret halow_password
+  country_code: "US"         # required; must match your region and AP
+  rssi:
+    name: "HaLow RSSI"</code></pre>
+<p>Install over USB the first time; the first compile downloads the Morse Micro SDK (about 50 MB). The access point must be in AP mode with bridging enabled so Home Assistant can reach HaLow devices. See the README for the full setup.</p>
+<div class="links"><a class="btn primary" href="https://github.com/DefeatedWarrior/esphome-halow">Repository</a><a class="btn" href="https://github.com/DefeatedWarrior/esphome-halow/blob/main/PATCHES.md">PATCHES.md</a></div>
+
+<h2 id="credits">Credits</h2>
+<p>The original component is by <a href="https://github.com/sweitzja/esphome-halow">Jason Sweitzer</a>, who authored most of the commit history. This fork adds the 2026.x compatibility work and review fixes. The MM6108 and its SDK are from Morse Micro.</p>
+<h2 id="docs-index">Documentation</h2><p>Full documentation, rendered from the repository.</p><h3>Guides</h3><ul class="doclist doc-index"><li><a href="esphome-halow/usage-guide.html">Usage guide</a></li><li><a href="esphome-halow/hardware.html">Hardware</a></li><li><a href="esphome-halow/development.html">Development</a></li></ul><h3>Internals</h3><ul class="doclist doc-index"><li><a href="esphome-halow/architecture.html">Architecture</a></li><li><a href="esphome-halow/esphome-compatibility.html">ESPHome compatibility</a></li><li><a href="esphome-halow/halow-notes.html">Engineering Notes - ESPHome Wi-Fi HaLow Component</a></li><li><a href="esphome-halow/patches.html">Patches against upstream</a></li></ul>
+  </article>
+</div>
+
+<footer>Open-source hardware and firmware by <a href="https://github.com/DefeatedWarrior">DefeatedWarrior</a>. Documentation pages are rendered from each project's repository.</footer>
+</body>
+</html>

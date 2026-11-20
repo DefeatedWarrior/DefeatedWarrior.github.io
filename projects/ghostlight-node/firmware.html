@@ -1,0 +1,179 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Firmware · Ghostlight Node</title>
+<meta name="description" content="Firmware: documentation for Ghostlight Node">
+<link rel="stylesheet" href="../../assets/style.css">
+
+</head>
+<body>
+<header class="site-header"><div class="in">
+  <a class="brand" href="../../index.html"><span class="bulb"></span>DefeatedWarrior</a>
+  <nav>
+    <a href="../../index.html#projects">Projects</a><a href="../../docs.html">Docs</a><a href="https://github.com/DefeatedWarrior">GitHub</a>
+    <form class="search" action="../../search.html" method="get" role="search"><input type="search" name="q" placeholder="Search docs…" aria-label="Search docs"></form>
+  </nav>
+</div></header>
+
+<div class="page">
+  <aside class="toc docs-nav"><a class="back" href="../../index.html#projects">← All projects</a>
+<a class="proj" href="../ghostlight-node.html">Ghostlight Node</a>
+<h4>Wiki</h4>
+<a href="wiki-home.html">Wiki home</a>
+<a href="getting-started.html">Getting Started</a>
+<a href="hardware-overview.html">Hardware Overview</a>
+<a href="power.html">Power</a>
+<a href="pin-map.html">Pin Map</a>
+<a href="connectors.html">Connectors</a>
+<a href="dmx-ports.html">DMX Ports</a>
+<a href="dmx-wiring.html">DMX Wiring</a>
+<a href="ethernet-and-poe.html">Ethernet and PoE</a>
+<a href="ordering-guide.html">Ordering Guide</a>
+<a href="bill-of-materials.html">Bill of Materials</a>
+<a href="assembly-guide.html">Assembly Guide</a>
+<a href="bring-up-checklist.html">Bring-up Checklist</a>
+<a class="cur" href="firmware.html">Firmware</a>
+<div class="sub"><a href="#what-changed-for-the-n8-module">What changed for the N8 module</a><a href="#build-and-flash">Build and flash</a><a href="#not-used-by-the-firmware-yet">Not used by the firmware yet</a><a href="#memory">Memory</a></div>
+<a href="using-the-node.html">Using the Node</a>
+<a href="troubleshooting.html">Troubleshooting</a>
+<a href="known-issues.html">Known Issues</a>
+<a href="faq.html">FAQ</a>
+<a href="glossary.html">Glossary</a>
+<a href="roadmap.html">Roadmap</a>
+<a href="contributing.html">Contributing</a>
+<h4>Reference docs</h4>
+<a href="01-overview-and-specifications.html">1. Overview and specifications</a>
+<a href="02-architecture-and-power.html">2. Architecture and power tree</a>
+<a href="03-pinout-and-connectors.html">3. Pin map and connectors</a>
+<a href="04-ethernet-and-poe.html">4. Ethernet and PoE</a>
+<a href="05-dmx-ports.html">5. DMX / RS-485 ports</a>
+<a href="06-usb-programming-debug.html">6. USB, programming and debug</a>
+<a href="07-bom-and-sourcing.html">7. Bill of materials and sourcing</a>
+<a href="08-ordering-guide.html">8. Ordering guide</a>
+<a href="09-assembly-guide.html">9. Assembly guide (hand assembly)</a>
+<a href="10-bring-up-and-test.html">10. Bring-up and test plan</a>
+<a href="11-known-issues-and-verification-status.html">11. Known issues and verification status</a>
+<a href="12-pcb-design-notes.html">12. PCB design notes</a>
+<a href="13-firmware-integration.html">13. Firmware integration</a>
+<a href="14-regenerating-the-design.html">14. Regenerating the design</a>
+<a href="15-roadmap.html">15. Roadmap and ideas for rev2</a>
+<h4>Firmware (upstream ESP-NODE-2RDM)</h4>
+<a href="firmware-overview.html">Firmware overview</a>
+<a href="component-dmx-handler.html">DMX handler component</a>
+<a href="component-network-manager.html">Network manager component</a></aside>
+  <article class="doc">
+    <div class="crumbs"><a href="../../index.html">Home</a> / <a href="../ghostlight-node.html">Ghostlight Node</a> / Wiki</div>
+    <h1>Firmware</h1>
+    
+    <div class="md"><p>The firmware lives in <a href="https://github.com/DefeatedWarrior/ghostlight-node/tree/main/firmware" target="_blank" rel="noopener"><code>firmware/</code></a>: ESP-IDF v5.2.6, MIT licence, originally <strong>ESP-NODE-2RDM</strong> by ThinhCNTT22. It still identifies the board as <code>ESP-NODE-2RDM</code>.</p>
+<div class="note warn">
+<p><strong>Warning</strong></p>
+<p>The N8 changes are applied but <strong>not built or run on hardware yet</strong> (no ESP-IDF was available when they were made).</p>
+</div>
+<h2 id="what-changed-for-the-n8-module">What changed for the N8 module</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>File</th>
+<th>Change</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>sdkconfig.defaults</code></td>
+<td>8 MB flash, PSRAM options removed</td>
+</tr>
+<tr>
+<td><code>partitions.csv</code></td>
+<td>8 MB layout (below)</td>
+</tr>
+<tr>
+<td><code>components/board/include/board.h</code></td>
+<td><code>BOARD_PORT_LED_GPIO { 5, 6 }</code>, plus unused <code>BOARD_DMX_BIAS_GPIO { 1, 2 }</code> and <code>BOARD_W5500_RST_GPIO 4</code></td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="partition-table-8-mb">Partition table (8 MB)</h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Name</th>
+<th>Type</th>
+<th>Offset</th>
+<th>Size</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>nvs</td>
+<td>data</td>
+<td>0x9000</td>
+<td>0x5000</td>
+</tr>
+<tr>
+<td>otadata</td>
+<td>data</td>
+<td>0xe000</td>
+<td>0x2000</td>
+</tr>
+<tr>
+<td>phy_init</td>
+<td>data</td>
+<td>0x10000</td>
+<td>0x1000</td>
+</tr>
+<tr>
+<td>ota_0</td>
+<td>app</td>
+<td>0x20000</td>
+<td>0x1A0000</td>
+</tr>
+<tr>
+<td>ota_1</td>
+<td>app</td>
+<td>0x1C0000</td>
+<td>0x1A0000</td>
+</tr>
+<tr>
+<td>littlefs</td>
+<td>data</td>
+<td>0x360000</td>
+<td>0x400000</td>
+</tr>
+<tr>
+<td>coredump</td>
+<td>data</td>
+<td>0x760000</td>
+<td>0x10000</td>
+</tr>
+</tbody>
+</table></div>
+<p>Ends at 0x770000. Checked for overlaps and 64 KB app alignment only. The app is about 1.1 MB, so each 1.6 MB slot has headroom.</p>
+<h2 id="build-and-flash">Build and flash</h2>
+<pre><code class="language-bash">. $IDF_PATH/export.sh
+cd firmware
+rm -f sdkconfig sdkconfig.old     # drop old 16 MB / PSRAM settings
+idf.py set-target esp32s3
+idf.py fullclean
+idf.py build
+idf.py -p /dev/ttyACM0 flash monitor
+</code></pre>
+<p>On the board, hold <strong>BOOT</strong>, tap <strong>RESET</strong>, release BOOT to enter download mode over USB-C.</p>
+<h2 id="not-used-by-the-firmware-yet">Not used by the firmware yet</h2>
+<ul>
+<li><strong>W5500 hardware reset (GPIO4):</strong> the driver has <code>reset_gpio_num = -1</code>. Setting it to 4 allows a hardware reset after faults.</li>
+<li><strong>DMX bias switches (GPIO1/2):</strong> not driven, so bias is off.</li>
+</ul>
+<h2 id="memory">Memory</h2>
+<p>With no PSRAM everything runs from the 512 KB internal SRAM. The diagnostic log ring falls back to internal RAM automatically. Watch <code>heap_caps_get_free_size()</code> during an Art-Net/sACN burst with Wi-Fi, Ethernet and the web UI active.</p>
+<p>More: <a href="https://github.com/DefeatedWarrior/ghostlight-node/blob/main/docs/13-firmware-integration.md" target="_blank" rel="noopener"><code>docs/13-firmware-integration.md</code></a>.</p></div>
+    <div class="links"><a class="btn small" href="https://github.com/DefeatedWarrior/ghostlight-node/blob/main/wiki/Firmware.md">View source on GitHub</a></div>
+    <nav class="pn"><a href="bring-up-checklist.html"><small>← Previous</small>Bring-up Checklist</a><a class="r" href="using-the-node.html"><small>Next →</small>Using the Node</a></nav>
+  </article>
+</div>
+
+<footer>Open-source hardware and firmware by <a href="https://github.com/DefeatedWarrior">DefeatedWarrior</a>. Documentation pages are rendered from each project's repository.</footer>
+</body>
+</html>

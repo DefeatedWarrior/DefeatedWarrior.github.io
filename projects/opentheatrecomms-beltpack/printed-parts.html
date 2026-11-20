@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Printed parts · OpenTheatreComms Beltpack</title>
+<meta name="description" content="Printed parts: documentation for OpenTheatreComms Beltpack">
+<link rel="stylesheet" href="../../assets/style.css">
+
+</head>
+<body>
+<header class="site-header"><div class="in">
+  <a class="brand" href="../../index.html"><span class="bulb"></span>DefeatedWarrior</a>
+  <nav>
+    <a href="../../index.html#projects">Projects</a><a href="../../docs.html">Docs</a><a href="https://github.com/DefeatedWarrior">GitHub</a>
+    <form class="search" action="../../search.html" method="get" role="search"><input type="search" name="q" placeholder="Search docs…" aria-label="Search docs"></form>
+  </nav>
+</div></header>
+
+<div class="page">
+  <aside class="toc docs-nav"><a class="back" href="../../index.html#projects">← All projects</a>
+<a class="proj" href="../opentheatrecomms-beltpack.html">OpenTheatreComms Beltpack</a>
+<h4>Design</h4>
+<a href="parts-list.html">Parts list</a>
+<a class="cur" href="printed-parts.html">Printed parts</a>
+<div class="sub"><a href="#assembly-notes-from-the-model">Assembly notes from the model</a></div>
+<h4>Repository docs</h4>
+<a href="readme.html">Repository README</a>
+<a href="kicad-starter-pack.html">OpenTheatreComms beltpack: KiCad starter pack</a>
+<a href="board-hand-off.html">Beltpack boards: KiCad hand-off</a></aside>
+  <article class="doc">
+    <div class="crumbs"><a href="../../index.html">Home</a> / <a href="../opentheatrecomms-beltpack.html">OpenTheatreComms Beltpack</a> / Design</div>
+    <h1>Printed parts</h1>
+    
+    <div class="md"><p>19 parts are 3D printed. Together they use about <strong>92 cm³</strong> of material before infill and supports. TPU 95A parts are printed in the department colour; the structural shells are PETG or ASA. Every part is exported as an STL in <code>cad/out/stl/</code> in the repository.</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Part</th>
+<th>Material and notes</th>
+<th>Solid volume</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Front shell</strong><br><code>front_shell.stl</code></td>
+<td>PETG/ASA. Curved ribbed front, both round ends, bottom face. Holds the main PCB on 5 heat-set M2 inserts, the knob wells and the XLR.</td>
+<td>29.3 cm³</td>
+</tr>
+<tr>
+<td><strong>Battery pack</strong><br><code>battery_pack.stl</code></td>
+<td>Printed tray: its back is the case back. Hooks at the top, snap at the bottom; the belt plate locks it in.</td>
+<td>20.1 cm³</td>
+</tr>
+<tr>
+<td><strong>Belt plate</strong><br><code>belt_plate.stl</code></td>
+<td>PETG. Slides up onto the rails until the tongue clicks; doubles as the battery door. Belt slots take up to 38 mm.</td>
+<td>10.9 cm³</td>
+</tr>
+<tr>
+<td><strong>Back shell</strong><br><code>back_shell.stl</code></td>
+<td>Hip-side skin with the battery opening and two dovetail rails for the belt plate. 4 x M2 screws.</td>
+<td>7.7 cm³</td>
+</tr>
+<tr>
+<td><strong>Top plate</strong><br><code>top_plate.stl</code></td>
+<td>Carries the keycaps, OLED and top PCB as one module; 4 x M2 countersunk screws at the ends, hidden under the TPU cap.</td>
+<td>4.2 cm³</td>
+</tr>
+<tr>
+<td><strong>TPU top cap</strong><br><code>tpu_top.stl</code></td>
+<td>TPU 95A in the department colour; stretches over the top/bottom 7 mm and hides the end screws.</td>
+<td>4.0 cm³</td>
+</tr>
+<tr>
+<td><strong>TPU bottom cap</strong><br><code>tpu_bottom.stl</code></td>
+<td>TPU 95A bumper; cut round the XLR flange and every bottom opening.</td>
+<td>3.7 cm³</td>
+</tr>
+<tr>
+<td><strong>Left dial tyre</strong><br><code>knob_left.stl</code></td>
+<td>TPU 95A truncated cone, 12 mm tall, 36 grip flutes. Hollow: the encoder body sits inside it.</td>
+<td>3.0 cm³</td>
+</tr>
+<tr>
+<td><strong>Right dial tyre</strong><br><code>knob_right.stl</code></td>
+<td>TPU 95A truncated cone, 12 mm tall, 36 grip flutes. Hollow: the encoder body sits inside it.</td>
+<td>3.0 cm³</td>
+</tr>
+<tr>
+<td><strong>Left dial hub</strong><br><code>hub_left.stl</code></td>
+<td>PETG insert bonded into the tyre. D-bore on the 6 mm flatted shaft; its stem runs in a bearing hole in the well floor.</td>
+<td>1.4 cm³</td>
+</tr>
+<tr>
+<td><strong>Right dial hub</strong><br><code>hub_right.stl</code></td>
+<td>PETG insert bonded into the tyre. D-bore on the 6 mm flatted shaft; its stem runs in a bearing hole in the well floor.</td>
+<td>1.4 cm³</td>
+</tr>
+<tr>
+<td><strong>Function button</strong><br><code>front_function.stl</code></td>
+<td>PETG cap with a flange behind the recess wall; plunger onto a PTS815 on the main PCB.</td>
+<td>0.6 cm³</td>
+</tr>
+<tr>
+<td><strong>Talk key 1</strong><br><code>keycap_1.stl</code></td>
+<td>Translucent PETG cap, flange retained under the top plate, sits straight on a PTS815; key LED lights it from below.</td>
+<td>0.6 cm³</td>
+</tr>
+<tr>
+<td><strong>Talk key 4</strong><br><code>keycap_4.stl</code></td>
+<td>Translucent PETG cap, flange retained under the top plate, sits straight on a PTS815; key LED lights it from below.</td>
+<td>0.6 cm³</td>
+</tr>
+<tr>
+<td><strong>Talk key 2</strong><br><code>keycap_2.stl</code></td>
+<td>Translucent PETG cap, flange retained under the top plate, sits straight on a PTS815; key LED lights it from below.</td>
+<td>0.3 cm³</td>
+</tr>
+<tr>
+<td><strong>Talk key 3</strong><br><code>keycap_3.stl</code></td>
+<td>Translucent PETG cap, flange retained under the top plate, sits straight on a PTS815; key LED lights it from below.</td>
+<td>0.3 cm³</td>
+</tr>
+<tr>
+<td><strong>Menu button</strong><br><code>front_menu.stl</code></td>
+<td>PETG cap with a flange behind the recess wall; plunger onto a PTS815 on the main PCB.</td>
+<td>0.3 cm³</td>
+</tr>
+<tr>
+<td><strong>Back button</strong><br><code>front_back.stl</code></td>
+<td>PETG cap with a flange behind the recess wall; plunger onto a PTS815 on the main PCB.</td>
+<td>0.3 cm³</td>
+</tr>
+<tr>
+<td><strong>Power button</strong><br><code>power_plunger.stl</code></td>
+<td>Recessed 0.2 mm below the bottom face so it is hard to knock; long-press to turn on/off.</td>
+<td>0.0 cm³</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="assembly-notes-from-the-model">Assembly notes from the model</h2>
+<ul>
+<li>The front shell holds the main PCB on <strong>5 heat-set M2 inserts</strong>; the back shell closes with <strong>4 × M2 screws</strong>.</li>
+<li>The top plate carries keycaps, OLED and top PCB as a single module, fixed by <strong>4 × M2 countersunk screws</strong> at the ends that are hidden under the TPU cap.</li>
+<li>The belt plate slides up onto two dovetail rails until its tongue clicks, and doubles as the battery door. Belt slots take belts up to 38 mm.</li>
+<li>The battery tray is the back of the case: hooks at the top, snap at the bottom, locked in by the belt plate.</li>
+<li>The power plunger sits 0.2 mm below the bottom face so it is hard to knock; a long press turns the pack on and off.</li>
+<li>Dials are a hollow TPU tyre bonded to a PETG hub, with a D-bore on the encoder's 6 mm flatted shaft.</li>
+</ul></div>
+    <div class="links"></div>
+    <nav class="pn"><a href="parts-list.html"><small>← Previous</small>Parts list</a><a class="r" href="readme.html"><small>Next →</small>Repository README</a></nav>
+  </article>
+</div>
+
+<footer>Open-source hardware and firmware by <a href="https://github.com/DefeatedWarrior">DefeatedWarrior</a>. Documentation pages are rendered from each project's repository.</footer>
+</body>
+</html>

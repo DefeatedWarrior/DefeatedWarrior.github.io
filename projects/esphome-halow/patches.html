@@ -1,0 +1,453 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Patches against upstream · esphome-halow</title>
+<meta name="description" content="Patches against upstream: documentation for esphome-halow">
+<link rel="stylesheet" href="../../assets/style.css">
+
+</head>
+<body>
+<header class="site-header"><div class="in">
+  <a class="brand" href="../../index.html"><span class="bulb"></span>DefeatedWarrior</a>
+  <nav>
+    <a href="../../index.html#projects">Projects</a><a href="../../docs.html">Docs</a><a href="https://github.com/DefeatedWarrior">GitHub</a>
+    <form class="search" action="../../search.html" method="get" role="search"><input type="search" name="q" placeholder="Search docs…" aria-label="Search docs"></form>
+  </nav>
+</div></header>
+
+<div class="page">
+  <aside class="toc docs-nav"><a class="back" href="../../index.html#projects">← All projects</a>
+<a class="proj" href="../esphome-halow.html">esphome-halow</a>
+<h4>Guides</h4>
+<a href="usage-guide.html">Usage guide</a>
+<a href="hardware.html">Hardware</a>
+<a href="development.html">Development</a>
+<h4>Internals</h4>
+<a href="architecture.html">Architecture</a>
+<a href="esphome-compatibility.html">ESPHome compatibility</a>
+<a href="halow-notes.html">Engineering Notes - ESPHome Wi-Fi HaLow Component</a>
+<a class="cur" href="patches.html">Patches against upstream</a>
+<div class="sub"><a href="#test-setup">Test setup</a><a href="#1-missing-internal-esp-idf-header-compile-error">1. Missing internal ESP-IDF header (compile error)</a><a href="#2-mbedtls-cmac-disabled-link-error">2. mbedTLS CMAC disabled (link error)</a><a href="#3-gpio-interrupt-storm-on-reboot-boot-loop">3. GPIO interrupt storm on reboot (boot loop)</a><a href="#4-lwip-initialised-twice-boot-loop">4. lwIP initialised twice (boot loop)</a><a href="#configuration-notes-not-code-changes">Configuration notes (not code changes)</a><a href="#results">Results</a><a href="#files-changed">Files changed</a><a href="#5-esphome-2026x-drops-every-api-connection">5. ESPHome 2026.x drops every API connection</a><a href="#6-reconnect-race">6. Reconnect race</a><a href="#7-timer-reconnect-ignored-security">7. Timer reconnect ignored security</a><a href="#8-ssidpassword-lengths-unchecked">8. SSID/password lengths unchecked</a><a href="#9-morse-sdk-download-not-pinned">9. Morse SDK download not pinned</a><a href="#10-mode-ap-and-type-mm8108">10. mode: AP and type: MM8108</a></div></aside>
+  <article class="doc">
+    <div class="crumbs"><a href="../../index.html">Home</a> / <a href="../esphome-halow.html">esphome-halow</a> / Internals</div>
+    <h1>Patches against upstream</h1>
+    
+    <div class="md"><p>The upstream <a href="https://github.com/sweitzja/esphome-halow" target="_blank" rel="noopener"><code>sweitzja/esphome-halow</code></a> component (commit <code>1b0b3a7</code>, May 2026) was built and tested on ESPHome's older PlatformIO toolchain with ESP-IDF 5.5.2. ESPHome 2026.x builds ESP32 projects with its own native ESP-IDF toolchain by default and starts the network stack itself. Those two changes break the component in four separate ways:</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>Symptom</th>
+<th>Stage</th>
+<th>File</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td><code>fatal error: esp_netif_lwip_internal.h: No such file or directory</code></td>
+<td>Compile</td>
+<td><code>halow_component.cpp</code></td>
+</tr>
+<tr>
+<td>2</td>
+<td><code>undefined reference to mbedtls_cipher_cmac_starts</code> (and <code>_update</code>, <code>_finish</code>)</td>
+<td>Link</td>
+<td><code>__init__.py</code></td>
+</tr>
+<tr>
+<td>3</td>
+<td>Boot loop: interrupt watchdog panic in <code>gpio_intr_service</code></td>
+<td>Runtime</td>
+<td><code>halow_component.cpp</code></td>
+</tr>
+<tr>
+<td>4</td>
+<td>Boot loop: <code>ESP_ERROR_CHECK failed: ESP_ERR_INVALID_ARG</code> in <code>esp_vfs_lwip_sockets_register</code></td>
+<td>Runtime</td>
+<td><code>halow_component.cpp</code>, <code>__init__.py</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>All four fixes are needed. Every fix is confined to <code>components/halow/</code>; the Morse Micro SDK and ESPHome itself are untouched.</p>
+<p><a href="#part-2-fixes-from-code-review">Part 2</a> covers a second round of fixes from a full review of the component, including one more ESPHome 2026.x break that would have dropped every Home Assistant connection.</p>
+<h2 id="test-setup">Test setup</h2>
+<ul>
+<li><strong>ESPHome</strong> 2026.9.1, native ESP-IDF toolchain, ESP-IDF 5.5.5 (the Home Assistant OS builder's default)</li>
+<li><strong>Host:</strong> Seeed XIAO ESP32-S3 (8 MB flash, 8 MB PSRAM)</li>
+<li><strong>Radio:</strong> Seeed XIAO HaLow Hat (MM6108), Morse firmware 1.17.6, morselib 2.10.4-esp32, chip ID <code>0x306</code></li>
+<li><strong>Network:</strong> an 802.11ah AP using WPA3-SAE in the Australian region (<code>country_code: "AU"</code>)</li>
+</ul>
+<hr />
+<h2 id="1-missing-internal-esp-idf-header-compile-error">1. Missing internal ESP-IDF header (compile error)</h2>
+<p><strong>Symptom</strong></p>
+<pre><code>halow_component.cpp:42:10: fatal error: esp_netif_lwip_internal.h: No such file or directory
+</code></pre>
+<p><strong>Cause.</strong> The component needs <code>struct esp_netif_obj</code> from ESP-IDF's private header <code>components/esp_netif/lwip/esp_netif_lwip_internal.h</code>, which it uses to wrap the HaLow netif for mDNS. <code>__init__.py</code> added that folder to the include path, but it hardcoded PlatformIO's copy of the framework:</p>
+<pre><code class="language-python">esp_netif_internal = os.path.join(
+    os.path.expanduser(&quot;~/.platformio&quot;), &quot;packages&quot;, &quot;framework-espidf&quot;,
+    &quot;components&quot;, &quot;esp_netif&quot;, &quot;lwip&quot;
+)
+if os.path.isdir(esp_netif_internal):
+    cg.add_build_flag(f&quot;-I{esp_netif_internal}&quot;)
+</code></pre>
+<p>The native toolchain keeps ESP-IDF somewhere else (for example <code>/data/cache/idf/frameworks/5.5.5</code> in HAOS). That folder doesn't exist, so the <code>-I</code> flag is skipped without any warning and the <code>#include</code> fails.</p>
+<p><strong>Fix.</strong> Include the header relative to <code>esp_netif</code>'s public <code>include/</code> directory, which every ESP-IDF build already has on the include path. That header only pulls in other public headers (<code>esp_netif.h</code>, <code>esp_netif_ppp.h</code>, <code>lwip/esp_netif_net_stack.h</code>, <code>dhcpserver/dhcpserver.h</code>), so no extra include path is needed. The old <code>-I</code> block in <code>__init__.py</code> is left in place; it's harmless.</p>
+<pre><code class="language-diff">--- a/components/halow/halow_component.cpp
++++ b/components/halow/halow_component.cpp
+@@ -39,7 +39,9 @@
+ // Internal header for esp_netif_obj struct layout — needed to create
+ // a minimal wrapper around mmipal's raw LWIP netif for mDNS registration.
+ // The struct layout has been stable since ESP-IDF v4.x.
+-#include &quot;esp_netif_lwip_internal.h&quot;
++// Reached relative to esp_netif's public include dir so it resolves under both
++// the PlatformIO and native ESP-IDF toolchains.
++#include &quot;../lwip/esp_netif_lwip_internal.h&quot;
+ }
+</code></pre>
+<hr />
+<h2 id="2-mbedtls-cmac-disabled-link-error">2. mbedTLS CMAC disabled (link error)</h2>
+<p><strong>Symptom</strong></p>
+<pre><code>libmm_shims.a(crypto_mbedtls_mm.c.obj): in function `mmint_omac1_aes_vector':
+crypto_mbedtls_mm.c:715: undefined reference to `mbedtls_cipher_cmac_starts'
+crypto_mbedtls_mm.c:737: undefined reference to `mbedtls_cipher_cmac_update'
+crypto_mbedtls_mm.c:735: undefined reference to `mbedtls_cipher_cmac_finish'
+</code></pre>
+<p><strong>Cause.</strong> Morse's crypto shim implements OMAC1 (AES-CMAC) with mbedTLS. WPA3-SAE and protected management frames need it. ESPHome 2026.x's generated <code>sdkconfig</code> leaves <code># CONFIG_MBEDTLS_CMAC_C is not set</code>, so those functions are never compiled.</p>
+<p><strong>Fix.</strong> Turn the option on alongside the existing <code>NIST_KW</code> crypto option:</p>
+<pre><code class="language-diff">--- a/components/halow/__init__.py
++++ b/components/halow/__init__.py
+@@ -444,6 +444,7 @@
+     # Kconfig: ESP32-S3
+     add_idf_sdkconfig_option(&quot;CONFIG_ESP32S3_INSTRUCTION_CACHE_32KB&quot;, True)
+     add_idf_sdkconfig_option(&quot;CONFIG_MBEDTLS_NIST_KW_C&quot;, True)
++    add_idf_sdkconfig_option(&quot;CONFIG_MBEDTLS_CMAC_C&quot;, True)  # OMAC1 for WPA3/PMF; ESPHome disables it by default
+</code></pre>
+<hr />
+<h2 id="3-gpio-interrupt-storm-on-reboot-boot-loop">3. GPIO interrupt storm on reboot (boot loop)</h2>
+<p><strong>Symptom.</strong> Right after <code>MM6108 hardware reset complete</code>, the board panics, reboots and repeats:</p>
+<pre><code>Guru Meditation Error: Core 1 panic'ed (Interrupt wdt timeout on CPU1).
+  gpio_intr_service          gpio.c:519
+  gpio_isr_register_on_core_static
+  esp_intr_alloc
+</code></pre>
+<p><strong>Cause.</strong> The MM6108's SPI IRQ line is configured as a <strong>LOW_LEVEL</strong> GPIO interrupt (<code>mmhal_wlan_set_spi_irq_enabled()</code> in the Morse shim). A software reset (a panic, an <code>abort()</code>, or a watchdog) doesn't reset the ESP32-S3's GPIO interrupt registers, and the MM6108 isn't power-cycled either. The next boot therefore starts with the IRQ pin still armed while the radio holds it low. <code>mmhal_init()</code> then calls <code>gpio_install_isr_service()</code>, and the interrupt fires straight away before any handler is attached. ESP-IDF clears the status bit, but a level-triggered pin fires again at once, so the CPU never gets out of the ISR and the interrupt watchdog trips.</p>
+<p>In this case the soft reset that started the loop was most likely the abort from fix #4, which happens after the radio has booted and armed its IRQ. Even with #4 fixed, any later crash or watchdog reset would have caused the same loop, so this fix is still needed.</p>
+<p><strong>Fix.</strong> Disarm the IRQ and BUSY pins at the start of <code>setup()</code>, before the SDK installs its ISR service. The SDK re-enables them itself once its handlers are registered.</p>
+<pre><code class="language-diff">--- a/components/halow/halow_component.cpp
++++ b/components/halow/halow_component.cpp
+@@ -231,6 +251,14 @@
+   periph_module_reset(PERIPH_SPI2_MODULE);
+   spi_bus_free(SPI2_HOST);  // Ignore error — may not be initialized
++
++  // GPIO interrupt config survives a software reset. If the previous boot left the
++  // IRQ pin armed as LOW_LEVEL, installing the ISR service in mmhal_init() storms
++  // with no handler attached and trips the interrupt watchdog. Disarm both pins.
++  for (int pin : {this-&gt;spi_irq_pin_, this-&gt;busy_pin_}) {
++    gpio_intr_disable((gpio_num_t) pin);
++    gpio_set_intr_type((gpio_num_t) pin, GPIO_INTR_DISABLE);
++  }
+
+   // Hardware-reset the MM6108 to ensure clean chip state.
+</code></pre>
+<hr />
+<h2 id="4-lwip-initialised-twice-boot-loop">4. lwIP initialised twice (boot loop)</h2>
+<p><strong>Symptom.</strong> The radio firmware boots and the log reaches <code>Using DHCP</code>, then:</p>
+<pre><code>ESP_ERROR_CHECK failed: esp_err_t 0x102 (ESP_ERR_INVALID_ARG)
+  esp_vfs_lwip_sockets_register   vfs_lwip.c:112
+  sys_init                        sys_arch.c:419
+  lwip_init                       init.c:355
+  tcpip_init                      tcpip.c:652
+  mmipal_init                     mmipal_lwip.c:791
+  esphome::halow::HalowComponent::setup()
+</code></pre>
+<p><strong>Cause.</strong> ESPHome 2026.x has a <code>network</code> component that calls <code>esp_netif_init()</code> early in boot, and that starts the lwIP tcpip thread through <code>tcpip_init()</code>. Later, Morse's <code>mmipal_init()</code> calls <code>tcpip_init()</code> again on its own. The second call re-runs <code>lwip_init()</code>, which tries to register the lwIP socket VFS a second time. ESP-IDF rejects the duplicate registration, and <code>ESP_ERROR_CHECK</code> aborts.</p>
+<p><strong>Fix.</strong> Wrap <code>tcpip_init</code> at link time, the same way the component already wraps <code>tcpip_input</code>. The first call (ESPHome's) goes through unchanged. Any later call (Morse's) does not re-initialise lwIP; it queues <code>mmipal</code>'s init-done callback onto the tcpip thread that's already running, which is what <code>mmipal_init()</code> is waiting for.</p>
+<p>The wrapper lives in <code>halow_component.cpp</code> rather than <code>network_wrap.cpp</code>. The only references to <code>__wrap_tcpip_init</code> come from <code>libesp_netif.a</code> and <code>libmmipal.a</code>, which are linked after the component's library, so a definition in <code>network_wrap.cpp</code> was never pulled in and the link failed. <code>halow_component.cpp</code> is always linked.</p>
+<pre><code class="language-diff">--- a/components/halow/halow_component.cpp
++++ b/components/halow/halow_component.cpp
+@@ -187,6 +189,24 @@
+   }
+ }
+
++// ESPHome's network component calls esp_netif_init(), which starts the lwIP
++// tcpip thread. mmipal_init() then calls tcpip_init() again, and lwIP aborts
++// re-registering its socket VFS. Let the first call through; for later calls
++// just run the init-done callback on the already-running tcpip thread.
++extern &quot;C&quot; {
++  extern void __real_tcpip_init(tcpip_init_done_fn initfunc, void *arg);
++  void __wrap_tcpip_init(tcpip_init_done_fn initfunc, void *arg) {
++    static bool s_tcpip_started = false;
++    if (!s_tcpip_started) {
++      s_tcpip_started = true;
++      __real_tcpip_init(initfunc, arg);
++      return;
++    }
++    if (initfunc != nullptr)
++      tcpip_callback(initfunc, arg);
++  }
++}
++
+ // --- Component Lifecycle ---
+</code></pre>
+<pre><code class="language-diff">--- a/components/halow/__init__.py
++++ b/components/halow/__init__.py
+@@ -477,6 +478,10 @@
+     # Wrap tcpip_input for RX byte counting — the SDK calls tcpip_input()
+     # directly instead of going through netif-&gt;input
+     cg.add_build_flag(&quot;-Wl,--wrap=tcpip_input&quot;)
++
++    # Wrap tcpip_init so mmipal_init() doesn't re-initialise the lwIP stack
++    # that ESPHome's network component already started
++    cg.add_build_flag(&quot;-Wl,--wrap=tcpip_init&quot;)
+</code></pre>
+<hr />
+<h2 id="configuration-notes-not-code-changes">Configuration notes (not code changes)</h2>
+<ul>
+<li><strong><code>country_code</code> must match the AP's region.</strong> With <code>"US"</code> (902–928 MHz) the board could not find an AU AP and timed out after 60 s on every attempt. With <code>"AU"</code> (915–928 MHz) it associated in about 2.5 s. <code>AU</code> is in Morse's regulatory database (<code>mmregdb.c</code>).</li>
+<li><strong>Toolchain.</strong> No <code>toolchain:</code> override is needed; the patched component builds with ESPHome's default native ESP-IDF toolchain.</li>
+<li><strong>Component source.</strong> These fixes are published in the <a href="https://github.com/DefeatedWarrior/esphome-halow" target="_blank" rel="noopener"><code>DefeatedWarrior/esphome-halow</code></a> fork:</li>
+</ul>
+<p><code>yaml
+  external_components:
+    - source: github://DefeatedWarrior/esphome-halow
+      components: [halow]</code></p>
+<h2 id="results">Results</h2>
+<p><strong>Verified</strong> on the hardware above, over the USB serial log:</p>
+<ul>
+<li>It compiles and links: 59.4% flash (1,090,835 B), 25.9% RAM.</li>
+<li>It boots with no panics or boot loops, and ESPHome's safe-mode boot counter resets after 60 s.</li>
+<li>The MM6108 firmware loads: <code>Morse FW 1.17.6, morselib 2.10.4-esp32, chip 0x306</code>.</li>
+<li>WPA3-SAE association: <code>STA state: CONNECTING</code> → <code>CONNECTED</code> → <code>HaLow link UP</code>.</li>
+<li>It gets an address by DHCP and sees the gateway.</li>
+<li>mDNS registers <code>halow1.local</code> and the <code>_esphomelib._tcp</code> service on the HaLow interface.</li>
+</ul>
+<p><strong>Not yet verified:</strong></p>
+<ul>
+<li><strong>Reaching the device from the main LAN, and the Home Assistant API connection.</strong> The test Mac sat on a different subnet with no route to the HaLow subnet, so this couldn't be checked. (Code review later showed the API connection would have failed on 2026.x anyway; see <a href="#5-esphome-2026x-drops-every-api-connection">Part 2, fix 5</a>.) It depends on the AP bridging to the LAN; see the upstream README's "Access Point Setup".</li>
+<li><strong>OTA over HaLow</strong>, and recovery after an AP restart or after going out of range.</li>
+<li><strong>Long-running stability.</strong></li>
+<li><strong>The PlatformIO toolchain</strong> (<code>toolchain: platformio</code>) with these patches. Fixes #1 and #2 should be harmless there. Fix #4 does nothing when only one <code>tcpip_init()</code> call is made.</li>
+</ul>
+<h2 id="files-changed">Files changed</h2>
+<pre><code>components/halow/__init__.py          +5   (CMAC sdkconfig option, --wrap=tcpip_init)
+components/halow/halow_component.cpp  +29 -1  (header path, GPIO disarm, tcpip_init wrapper)
+</code></pre>
+<hr />
+<h1 id="part-2-fixes-from-code-review">Part 2: fixes from code review</h1>
+<p>A full review of the component turned up one more ESPHome 2026.x break and a set of bugs that predate it. These are merged into <code>main</code>; the state before them is kept on the <code>pre-improvements</code> branch.</p>
+<p><strong>How they were verified:</strong> everything compiles and links on ESPHome 2026.9.1 (59.8% flash, 26.0% RAM with every sensor enabled). Config validation was exercised with good and bad configs. The network patch was confirmed in the build output (the API server's object file calls <code>halow::network_is_connected()</code>). The pinned SDK download was run into an empty folder. <strong>None of the runtime behaviour in this part has been tested on hardware yet</strong>: the test board was resetting whenever its radio powered up (a hardware/power fault, see the README's Troubleshooting), so nothing past "Connecting" could be exercised.</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>Problem</th>
+<th>Severity</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>5</td>
+<td>ESPHome 2026.x drops every API connection</td>
+<td>Critical</td>
+</tr>
+<tr>
+<td>6</td>
+<td>Reconnect race between the main loop and the timer</td>
+<td>High</td>
+</tr>
+<tr>
+<td>7</td>
+<td>Timer reconnect ignored the configured security type</td>
+<td>High</td>
+</tr>
+<tr>
+<td>8</td>
+<td>SSID/password lengths unchecked (buffer overflow)</td>
+<td>High</td>
+</tr>
+<tr>
+<td>9</td>
+<td>Morse SDK download not pinned</td>
+<td>High</td>
+</tr>
+<tr>
+<td>10</td>
+<td><code>mode: AP</code> and <code>type: MM8108</code> accepted but non-functional</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>11</td>
+<td>Scan results exceed Home Assistant's 255-char limit, unsynchronised</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>12</td>
+<td>mDNS teardown discarded ESPHome's discovery records</td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>13</td>
+<td><code>country_code</code> silently defaulted to <code>US</code></td>
+<td>Medium</td>
+</tr>
+<tr>
+<td>14</td>
+<td>Smaller cleanups</td>
+<td>Low</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="5-esphome-2026x-drops-every-api-connection">5. ESPHome 2026.x drops every API connection</h2>
+<p><strong>Problem.</strong> ESPHome's API server checks <code>network::is_connected()</code> on every loop and, if it's false, disconnects all clients ("Network down; disconnect"). With no client ever staying connected it then reboots the device after <code>reboot_timeout</code> (15 minutes by default). MQTT, <code>http_request</code>, the <code>status</code> binary sensor and others use the same check. <code>is_connected()</code> only knows ESPHome's built-in interfaces, so the original component overrode it with linker <code>--wrap</code>. In ESPHome 2026.x <code>is_connected()</code> became <code>ESPHOME_ALWAYS_INLINE</code> in <code>network/util.h</code>, so there is no symbol to wrap, and <code>get_use_address()</code> was replaced by <code>get_use_address_to()</code>. All three wraps silently did nothing; <code>nm</code> on the firmware shows no <code>__wrap_</code> symbols at all.</p>
+<p><strong>Fix.</strong> <code>_patch_network_util()</code> in <code>__init__.py</code> reads ESPHome's own <code>network/util.h</code> and <code>util.cpp</code>, inserts a <code>USE_HALOW</code> branch at the top of <code>is_connected()</code> and <code>get_ip_addresses()</code>, and registers the patched copies with <code>add_extra_build_file()</code>. ESP32 <code>copy_files()</code> runs after ESPHome copies its sources, so they replace the originals in the build tree. Because it patches whatever ESPHome version is installed, it should survive minor changes; if it can't find the functions it stops the build with a clear error instead of producing firmware that drops connections. <code>network_wrap.cpp</code> and its <code>--wrap</code> flags are removed. <code>get_use_address_to()</code> needs no hook, since it already returns <code>&lt;name&gt;.local</code>.</p>
+<pre><code class="language-cpp">ESPHOME_ALWAYS_INLINE inline bool is_connected() {
+#ifdef USE_HALOW
+  if (halow::network_is_connected())
+    return true;
+#endif  // USE_HALOW
+  ...
+</code></pre>
+<h2 id="6-reconnect-race">6. Reconnect race</h2>
+<p><strong>Problem.</strong> When the link dropped, <code>loop()</code> moved to <code>CONNECTING</code> without resetting the connect timer, so on the next pass the 60 s timeout had already "expired". It went to <code>STOPPED</code> and called <code>mmwlan_sta_enable()</code> from the main loop 5 s later, while the FreeRTOS timer the link-down callback had started did <code>sta_disable()</code> + <code>sta_enable()</code> 10 s after that. Two tasks were driving the radio at once, and the main-loop call is exactly what the author's own notes say wedges the SDK.</p>
+<p><strong>Fix.</strong> After the initial connect in <code>setup()</code>, only the timer task calls <code>mmwlan_sta_disable/enable</code>. <code>loop()</code> tracks the time of the last attempt (<code>s_last_attempt_ms</code>, updated by every <code>sta_enable</code> call and reset on link loss), and on a timeout it only schedules the timer if it isn't already pending (<code>schedule_reconnect()</code>). The <code>STOPPED</code> retry path is gone. The timer task's stack is raised to 4096 bytes (<code>CONFIG_FREERTOS_TIMER_TASK_STACK_DEPTH</code>), since these SDK calls and their logging now run on it.</p>
+<h2 id="7-timer-reconnect-ignored-security">7. Timer reconnect ignored <code>security</code></h2>
+<p><strong>Problem.</strong> <code>do_halow_reconnect()</code> hardcoded <code>MMWLAN_SAE</code>, so <code>OWE</code> and <code>OPEN</code> networks could connect once but never reconnect.</p>
+<p><strong>Fix.</strong> The initial connect and the reconnect now both build their arguments with <code>fill_sta_args()</code>, which uses the configured security type.</p>
+<h2 id="8-ssidpassword-lengths-unchecked">8. SSID/password lengths unchecked</h2>
+<p><strong>Problem.</strong> The SSID and passphrase were <code>memcpy</code>'d into the SDK's fixed 32- and 100-byte buffers using the string's length, and the schema accepted any length. A 33+ character SSID overwrote the stack.</p>
+<p><strong>Fix.</strong> The schema limits <code>ssid</code> to 1–32 and <code>password</code> to 100 characters, and <code>fill_sta_args()</code> clamps to the buffer sizes as well. <code>password</code> is now optional (it isn't used for <code>OPEN</code>/<code>OWE</code>) but required for <code>SAE</code>.</p>
+<h2 id="9-morse-sdk-download-not-pinned">9. Morse SDK download not pinned</h2>
+<p><strong>Problem.</strong> The SDK was fetched with <code>git clone --depth 1</code> of whatever was on the default branch. Any new Morse commit could change the firmware or break the build, and the HAOS add-on can wipe <code>/root/.esphome</code> on updates, which triggers a fresh clone.</p>
+<p><strong>Fix.</strong> The download now fetches exactly <code>MM_IOT_SDK_COMMIT</code> (<code>96d9bf4</code>, morselib 2.10.4, firmware 1.17.6). An existing checkout at a different commit logs a warning. The BCF file name is also checked against the SDK at compile time.</p>
+<h2 id="10-mode-ap-and-type-mm8108">10. <code>mode: AP</code> and <code>type: MM8108</code></h2>
+<p><strong>Problem.</strong> Both were accepted and documented, but there is no AP code at all, and <code>MM8108</code> still loaded <code>mm6108.mbin</code> with an MM6108 board config.</p>
+<p><strong>Fix.</strong> Config validation rejects them with an explanation. The README lists station mode and MM6108 as the supported configuration.</p>
+<h2 id="11-scan-results">11. Scan results</h2>
+<p><strong>Problem.</strong> The scan JSON listed every AP with long field names, which easily exceeds Home Assistant's 255-character text sensor limit. The string was also appended to from the SDK's task while the main loop read and cleared it, with no lock. The noise floor kept the <em>highest</em> (worst) reading, contradicting its comment.</p>
+<p><strong>Fix.</strong> Results are collected into a mutex-protected list (capped at 32). On completion they are sorted strongest first and published as compact JSON (<code>ssid</code>, <code>rssi</code>, <code>noise</code>, <code>mhz</code>, <code>bw</code>), stopping at the last whole entry that fits in 255 characters. SSIDs are sanitised for JSON. The noise floor comes from the channel of the connected AP, or the quietest channel if that AP wasn't seen. Every result is still written to the debug log.</p>
+<h2 id="12-mdns">12. mDNS</h2>
+<p><strong>Problem.</strong> <code>start_mdns_()</code> called <code>mdns_free()</code> and re-initialised the responder, discarding the services ESPHome's mdns component had registered, along with their full TXT records (<code>mac</code>, <code>friendly_name</code>, <code>api_encryption</code>, ...). It then re-added a minimal <code>_esphomelib._tcp</code> record. Nothing was re-announced after a reconnect.</p>
+<p><strong>Fix.</strong> <code>mdns_init()</code> is a no-op when ESPHome has already started the responder, so the component no longer frees it; it registers its HaLow netif wrapper alongside ESPHome's services. <code>_esphomelib._tcp</code> is only added (now with <code>mac</code> and <code>friendly_name</code>) if ESPHome didn't register it. On reconnects the address is re-announced.</p>
+<h2 id="13-country_code-default">13. <code>country_code</code> default</h2>
+<p><strong>Problem.</strong> <code>country_code</code> defaulted to <code>US</code> and wasn't validated. A device outside the US that omitted it couldn't find its AP, which is what happened during testing, and would transmit on the wrong band.</p>
+<p><strong>Fix.</strong> <code>country_code</code> is required and must be one of the regions in the pinned SDK's regulatory database: <code>AU</code>, <code>CA</code>, <code>EU</code>, <code>GB</code>, <code>IN</code>, <code>JP</code>, <code>KR</code>, <code>NZ</code>, <code>US</code> (case-insensitive).</p>
+<h2 id="14-smaller-changes">14. Smaller changes</h2>
+<ul>
+<li><strong>New <code>max_tx_power</code> option</strong> (1–30 dBm), using <code>mmwlan_override_max_tx_power()</code>. It can only lower power below the regulatory limit.</li>
+<li>Pins are validated as distinct ESP32-S3 GPIOs (0–48).</li>
+<li>Removed the unused <code>full_radio_reset_()</code>, the unused traffic-watchdog members and <code>set_scan_button()</code>.</li>
+<li><code>sta_status_cb</code> bounds-checks the state before indexing its name table.</li>
+<li>Removed the <code>-I~/.platformio/...</code> include path (superseded by fix 1). <code>pre_build.py</code> is only registered for the PlatformIO toolchain.</li>
+<li>README: pin table fixed (five XIAO labels were off by one), Troubleshooting section added, configuration table and scan-result docs updated, ESP32-C6 marked unsupported.</li>
+</ul>
+<hr />
+<h1 id="part-3-second-review">Part 3: second review</h1>
+<p>A second pass over the Part 2 code before merging it into <code>main</code>. Same verification as Part 2 (compile, config validation, build-output checks; no runtime hardware testing).</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>#</th>
+<th>Problem</th>
+<th>Fix</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>15</td>
+<td><code>manual_ip</code> <code>dns1</code>/<code>dns2</code> were stored but never applied, so a static-IP device had no DNS (SNTP, HTTP by hostname, ...).</td>
+<td>Applied with <code>mmipal_set_dns_server()</code> after <code>mmipal_init()</code>.</td>
+</tr>
+<tr>
+<td>16</td>
+<td>If <code>mmwlan_sta_disable()</code> failed, the reconnect timer re-armed itself without ever calling <code>sta_enable()</code>. Since Part 2 also routes a failed first connect through the timer, that could retry forever without connecting.</td>
+<td>A failed disable is logged and the reconnect continues; <code>sta_enable()</code> restarts the connection by itself if the STA is still enabled.</td>
+</tr>
+<tr>
+<td>17</td>
+<td>A failed SDK download left a half-initialised <code>git</code> folder, and every later build failed on it.</td>
+<td>The partial download is removed on failure; a non-empty folder without the SDK gives a clear error.</td>
+</tr>
+<tr>
+<td>18</td>
+<td>The SDK version warning also fired for a deliberately chosen <code>mm_iot_sdk_path</code>.</td>
+<td>Only warns for the default, auto-downloaded path.</td>
+</tr>
+<tr>
+<td>19</td>
+<td>Part 2 called the component "ESP32-S3 only", but morselib ships ESP32-C3, C6 and P4 libraries too.</td>
+<td>Docs now say "tested on ESP32-S3 only"; the S3-only cache option is only set on the S3.</td>
+</tr>
+<tr>
+<td>20</td>
+<td>First connect after a timeout logged "LINK RECOVERED after <uptime>s downtime".</td>
+<td>Only logged after a real disconnect.</td>
+</tr>
+<tr>
+<td>21</td>
+<td>Scan callback copied <code>ssid</code>/<code>bssid</code> without a null check; stale byte-counter comment.</td>
+<td>Guarded; comment rewritten.</td>
+</tr>
+</tbody>
+</table></div>
+<p>The README also gained a Troubleshooting entry for the 15-minute API <code>reboot_timeout</code> restart, which is what a device does when Home Assistant can't reach it.</p>
+<hr />
+<h1 id="part-4-repository-cleanup">Part 4: repository cleanup</h1>
+<p>No change to the component's behaviour.</p>
+<ul>
+<li><strong>Layout:</strong> the original bring-up apps moved to <code>tools/</code> (<code>spi_probe</code>, <code>sta_connect</code>, <code>iperf</code>) and the original engineering notes to <code>docs/HALOW_NOTES.md</code>, marked as a partly historical notebook.</li>
+<li><strong>New reference docs:</strong> <a href="architecture.html">docs/ARCHITECTURE.md</a> (how the component works), <a href="esphome-compatibility.html">docs/ESPHOME_COMPAT.md</a> (ESPHome internals relied on, upgrade checklist), <a href="development.html">docs/DEVELOPMENT.md</a> (build/verify/flash workflow, test history), <a href="hardware.html">docs/HARDWARE.md</a> (pins, power rails, failure signatures, the open power-reset investigation). <code>CLAUDE.md</code> is now a short index with the rules that matter.</li>
+<li><strong>New tools:</strong> <code>tools/serial_watch.py</code> (serial logger that survives resets) and <code>tools/test_network_patch.py</code> (runs the ESPHome network patch against several ESPHome releases; passes on 2025.6.0, 2025.12.0, 2026.4.0, 2026.9.1).</li>
+<li><strong>README</strong> reorganised around a Home Assistant quick start, with a status table and a documentation index; the sensor and configuration reference is unchanged.</li>
+<li><strong>Small fixes:</strong> <code>pre_build.py</code> lint (unused import, stray f-strings) and a note that it's PlatformIO-only; <code>spi_probe</code> no longer hardcodes the Linux port <code>/dev/ttyACM0</code>.</li>
+<li><strong>Branches:</strong> removed <code>improvements</code> and <code>esphome-2026-fixes</code>, which were identical to <code>main</code> and <code>pre-improvements</code>.</li>
+</ul>
+<hr />
+<h1 id="part-5-device-builder-cant-find-the-device">Part 5: Device Builder can't find the device</h1>
+<p><strong>Problem.</strong> Opening logs or installing wirelessly from the Device Builder failed with <code>All specified devices ['OTA'] could not be resolved. Is the device connected to the network?</code>. ESPHome picks the host from <code>CORE.address</code>, which only reads <code>use_address</code> from <code>wifi:</code>, <code>ethernet:</code> and <code>openthread:</code>. For a <code>halow:</code> device it was always empty, so wireless logs and OTA from the builder could never work, and mDNS can't help anyway when the HaLow network is a separate subnet.</p>
+<p><strong>Fix.</strong> New <code>use_address</code> option under <code>halow:</code>, defaulting like wifi's (static IP if set, else <code>&lt;name&gt;.local</code>). The component wraps the <code>CORE.address</code> property so it falls back to <code>halow.use_address</code>; if ESPHome ever changes that property the hook just does nothing.</p>
+<p><strong>First version was incomplete</strong> (found in review): it was only tested on the first, uncached run. For <code>logs</code> and <code>upload</code>, ESPHome reuses a cache of the validated config written by the previous compile or logs run (<code>esphome/compiled_config.py</code>) and skips validation, so the component's Python never loads and the address hook never runs. The second <code>esphome logs</code> printed "Loaded validated config cache… skipping validation" and then "could not be resolved". That's the path the Device Builder takes after an install.</p>
+<p><strong>Second fix.</strong> For configs containing <code>halow:</code>, the component replaces ESPHome's cache writer (<code>save_compiled_config</code>, also referenced from <code>writer.py</code>) with one that deletes any existing cache file instead of writing one. Without a cache ESPHome validates again, which loads the component and the hook. Other configs are untouched. The cost is a few seconds of validation each time logs or a wireless upload starts, as before ESPHome added the cache. The storage sidecar is still written, and already records the right address.</p>
+<p><strong>Verified (ESPHome 2026.9.1, <code>use_address: 10.1.30.195</code>):</strong></p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Scenario</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Previous code, <code>esphome logs --device OTA</code></td>
+<td>First run resolves; second run loads the cache and fails ("could not be resolved"). Reproduces the report.</td>
+</tr>
+<tr>
+<td>No cache, <code>logs</code> twice</td>
+<td>Both resolve; no cache file written</td>
+</tr>
+<tr>
+<td>Stale cache left by the previous version</td>
+<td>First run still fails; after editing the YAML, every run resolves and the cache is gone</td>
+</tr>
+<tr>
+<td>Stale cache, then <code>compile</code>, then <code>logs</code> twice</td>
+<td>Compile removes the cache; both log runs resolve; sidecar <code>address</code> is <code>10.1.30.195</code></td>
+</tr>
+<tr>
+<td><code>upload --device OTA</code> twice after that compile</td>
+<td>Both go to <code>10.1.30.195</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>The firmware is unchanged (host-side only). Not verified: an actual log session from Home Assistant, which also needs HA to have a route to the HaLow network.</p>
+<p><strong>Proper fix belongs in ESPHome:</strong> <code>CORE.address</code> could fall back to the storage sidecar's <code>address</code>, or to any network component's <code>use_address</code>. Then both hooks could go.</p></div>
+    <div class="links"><a class="btn small" href="https://github.com/DefeatedWarrior/esphome-halow/blob/main/PATCHES.md">View source on GitHub</a></div>
+    <nav class="pn"><a href="halow-notes.html"><small>← Previous</small>Engineering Notes - ESPHome Wi-Fi HaLow Component</a><span></span></nav>
+  </article>
+</div>
+
+<footer>Open-source hardware and firmware by <a href="https://github.com/DefeatedWarrior">DefeatedWarrior</a>. Documentation pages are rendered from each project's repository.</footer>
+</body>
+</html>

@@ -1,0 +1,219 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Development · esphome-halow</title>
+<meta name="description" content="Development: documentation for esphome-halow">
+<link rel="stylesheet" href="../../assets/style.css">
+
+</head>
+<body>
+<header class="site-header"><div class="in">
+  <a class="brand" href="../../index.html"><span class="bulb"></span>DefeatedWarrior</a>
+  <nav>
+    <a href="../../index.html#projects">Projects</a><a href="../../docs.html">Docs</a><a href="https://github.com/DefeatedWarrior">GitHub</a>
+    <form class="search" action="../../search.html" method="get" role="search"><input type="search" name="q" placeholder="Search docs…" aria-label="Search docs"></form>
+  </nav>
+</div></header>
+
+<div class="page">
+  <aside class="toc docs-nav"><a class="back" href="../../index.html#projects">← All projects</a>
+<a class="proj" href="../esphome-halow.html">esphome-halow</a>
+<h4>Guides</h4>
+<a href="usage-guide.html">Usage guide</a>
+<a href="hardware.html">Hardware</a>
+<a class="cur" href="development.html">Development</a>
+<div class="sub"><a href="#environment">Environment</a><a href="#test-config">Test config</a><a href="#verification-checklist">Verification checklist</a><a href="#flashing-and-logs">Flashing and logs</a><a href="#branches-and-releases">Branches and releases</a><a href="#standalone-test-apps-tools">Standalone test apps (tools/)</a><a href="#test-history">Test history</a></div>
+<h4>Internals</h4>
+<a href="architecture.html">Architecture</a>
+<a href="esphome-compatibility.html">ESPHome compatibility</a>
+<a href="halow-notes.html">Engineering Notes - ESPHome Wi-Fi HaLow Component</a>
+<a href="patches.html">Patches against upstream</a></aside>
+  <article class="doc">
+    <div class="crumbs"><a href="../../index.html">Home</a> / <a href="../esphome-halow.html">esphome-halow</a> / Guides</div>
+    <h1>Development</h1>
+    
+    <div class="md"><p>How to build, verify, flash and release changes to this component.</p>
+<h2 id="environment">Environment</h2>
+<ul>
+<li><strong>ESPHome pinned to the tested version</strong> in a virtualenv:
+  <code>bash
+  python3 -m venv .venv &amp;&amp; .venv/bin/pip install "esphome==2026.9.1" pyflakes</code>
+  The first compile downloads ESP-IDF to <code>~/Library/Caches/esphome/idf</code> (macOS) or <code>~/.cache/esphome/idf</code>; later builds reuse it.</li>
+<li><strong>MM-IoT-SDK</strong> is downloaded by the component on first compile to <code>~/.esphome/mm-iot-esp32</code>, pinned to <code>MM_IOT_SDK_COMMIT</code>.</li>
+<li><strong>Git remotes:</strong> <code>origin</code> is the fork (<code>DefeatedWarrior/esphome-halow</code>), <code>upstream</code> is <code>sweitzja/esphome-halow</code>.</li>
+</ul>
+<h2 id="test-config">Test config</h2>
+<p>Point a YAML at the working tree, not GitHub, so local edits are compiled:</p>
+<pre><code class="language-yaml">esphome:
+  name: halowtest
+esp32:
+  variant: esp32s3
+  framework:
+    type: esp-idf
+external_components:
+  - source:
+      type: local
+      path: /absolute/path/to/esphome-halow/components
+    components: [halow]
+logger:
+api:
+ota:
+  - platform: esphome
+debug:                       # logs the reset reason at boot
+text_sensor:
+  - platform: debug
+    reset_reason: {name: Reset Reason}
+binary_sensor:
+  - platform: status         # ON only if network::is_connected() sees HaLow
+    name: Status
+halow:
+  ssid: !secret halow_ssid
+  password: !secret halow_password
+  country_code: AU
+  # add every sensor (see example.yaml) to compile all code paths
+</code></pre>
+<p>Build output goes to <code>.esphome/build/&lt;name&gt;/</code> next to the YAML.</p>
+<h2 id="verification-checklist">Verification checklist</h2>
+<p>Run before pushing to <code>main</code>:</p>
+<ol>
+<li><strong>Lint:</strong> <code>.venv/bin/python -m pyflakes components/halow/__init__.py tools/*.py</code> (<code>pre_build.py</code> reports <code>Import</code>/<code>env</code> as undefined; those are PlatformIO globals).</li>
+<li><strong>Network patch across ESPHome versions:</strong> <code>.venv/bin/python tools/test_network_patch.py</code> (add new versions as arguments).</li>
+<li><strong>Full compile</strong> with every sensor, the scan button, <code>max_tx_power</code>, and a <code>manual_ip</code> with <code>dns1</code>, so every code path builds: <code>.venv/bin/esphome compile test.yaml</code>. No warnings from <code>components/halow/</code>.</li>
+<li><strong>Patch is in the build:</strong>
+   <code>bash
+   grep -c USE_HALOW .esphome/build/&lt;name&gt;/src/esphome/components/network/util.h   # expect 2
+   NM=$(ls ~/Library/Caches/esphome/idf/tools/xtensa-esp-elf/*/xtensa-esp-elf/bin/xtensa-esp32s3-elf-nm)
+   $NM -C $(find .esphome/build/&lt;name&gt;/build -name api_server.cpp.obj) | grep halow   # expect U esphome::halow::network_is_connected()</code></li>
+<li><strong>Config validation:</strong> each of these must fail with a clear message: <code>country_code: XX</code>, no <code>country_code</code>, <code>type: MM8108</code>, <code>mode: AP</code>, a 33-character <code>ssid</code>, two pins on the same GPIO, <code>max_tx_power: 40</code>, <code>security: SAE</code> without a password. <code>country_code: au</code> must pass (normalised to <code>AU</code>). <code>esphome config</code> must show <code>use_address</code> defaulting to <code>&lt;name&gt;.local</code> (or the <code>manual_ip</code> address).</li>
+<li><strong>Device address:</strong> with <code>use_address: &lt;ip&gt;</code> set, run <code>esphome logs test.yaml --device OTA</code> twice, and again after a <code>compile</code>. Every run must print <code>Starting log output from &lt;ip&gt;</code> (stop it with Ctrl-C), never "Loaded validated config cache" or "could not be resolved". The second run is what catches the cache problem.</li>
+<li><strong>Clean build from GitHub</strong>, as Home Assistant does, after pushing a branch: <code>source: github://DefeatedWarrior/esphome-halow@&lt;branch&gt;</code> in a fresh folder.</li>
+<li><strong>Hardware</strong> (when possible): flash, watch the log (below) for <code>HaLow connected to</code>, <code>Status: ON</code>, and Home Assistant staying connected past 15 minutes.</li>
+</ol>
+<h2 id="flashing-and-logs">Flashing and logs</h2>
+<pre><code class="language-bash">.venv/bin/esphome upload test.yaml --device /dev/cu.usbmodem101
+.venv/bin/python tools/serial_watch.py 90 watch.log     # survives resets, unlike `esphome logs`
+sed 's/\x1b\[[0-9;]*m//g' watch.log | grep -E &quot;===|halow|Guru|abort|reset&quot;
+</code></pre>
+<ul>
+<li><code>=== lost port ===</code> lines mark full chip resets. A panic or <code>esp_restart()</code> does <strong>not</strong> drop the port, but a power-on reset does.</li>
+<li>Reset reasons are in <a href="hardware.html#failure-signatures">HARDWARE.md</a>. Boot output before the port reopens is lost; for a reset loop, log <code>esp_reset_reason()</code> periodically from a temporary diagnostic build instead.</li>
+<li>ESPHome's crash handler prints the previous boot's backtrace (<code>*** CRASH DETECTED ON PREVIOUS BOOT ***</code>) and decodes it when logging through <code>esphome logs</code>. To decode by hand:
+  <code>bash
+  A=$(ls ~/Library/Caches/esphome/idf/tools/xtensa-esp-elf/*/xtensa-esp-elf/bin/xtensa-esp32s3-elf-addr2line)
+  $A -pfiaC -e .esphome/build/&lt;name&gt;/build/&lt;name&gt;.elf 0x4200e50f 0x42076c4d</code></li>
+<li><strong>Diagnostic build pattern</strong> (used to isolate the power-on reset): in a throwaway copy of the component, log <code>esp_reset_reason()</code> at the top of <code>setup()</code> and in a 1 s <code>set_interval</code>, and wrap the final <code>start_connect_()</code> in <code>set_timeout(15000, ...)</code>. That separates "fails during setup" from "fails when the radio powers up".</li>
+</ul>
+<h2 id="branches-and-releases">Branches and releases</h2>
+<ul>
+<li><code>main</code>: what Home Assistant builds by default (<code>github://DefeatedWarrior/esphome-halow</code>). Keep it working.</li>
+<li><code>pre-improvements</code>: <code>main</code> before the Part 2/3 review fixes (four original ESPHome 2026.x fixes only). Kept as a fallback.</li>
+<li>Do larger changes on a branch; test with <code>@branch</code> and <code>refresh: 1min</code> in Home Assistant; then fast-forward <code>main</code>.</li>
+<li>Record every behavioural change in <a href="patches.html">PATCHES.md</a>: problem, fix, how it was verified, and what wasn't.</li>
+<li>To pull in upstream changes: <code>git fetch upstream &amp;&amp; git merge upstream/main</code>, then re-run the checklist; the upstream author still targets the PlatformIO toolchain.</li>
+</ul>
+<h2 id="standalone-test-apps-tools">Standalone test apps (<code>tools/</code>)</h2>
+<p>The original author's bring-up tools, built outside ESPHome:</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Tool</th>
+<th>Build</th>
+<th>What it does</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>tools/spi_probe</code></td>
+<td>PlatformIO, Arduino</td>
+<td>Raw SPI/SDIO register probe of the MM6108 (no firmware load). Checks wiring.</td>
+</tr>
+<tr>
+<td><code>tools/sta_connect</code></td>
+<td>ESP-IDF + <code>MMIOT_ROOT</code></td>
+<td>Boots the MM6108 and associates with WPA3-SAE. Set SSID/passphrase in <code>main/src/sta_connect.c</code>.</td>
+</tr>
+<tr>
+<td><code>tools/iperf</code></td>
+<td>ESP-IDF + <code>MMIOT_ROOT</code></td>
+<td>Full lwIP + DHCP + iperf server, for throughput testing.</td>
+</tr>
+</tbody>
+</table></div>
+<p>For the ESP-IDF ones: <code>export MMIOT_ROOT=~/.esphome/mm-iot-esp32</code>, then <code>idf.py set-target esp32s3 build flash monitor</code> with ESP-IDF 5.5 sourced.</p>
+<h2 id="test-history">Test history</h2>
+<p>Original author, ESPHome before 2026.x (PlatformIO toolchain, ESP-IDF 5.5.2), XIAO ESP32-S3 + Wio-WM6180 + HaLowLink 2, US:</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SPI/SDIO registers, firmware boot</td>
+<td>Pass: FW 1.17.6, morselib 2.10.4, chip <code>0x306</code></td>
+</tr>
+<tr>
+<td>WPA3-SAE association, DHCP</td>
+<td>Pass: link up in ~10 s</td>
+</tr>
+<tr>
+<td>ESPHome API from LAN, mDNS, HA (2026.4.2)</td>
+<td>Pass</td>
+</tr>
+<tr>
+<td>LAN ping (power save off)</td>
+<td>10/10, 7-11 ms</td>
+</tr>
+<tr>
+<td>20-minute soak</td>
+<td>Heap stable</td>
+</tr>
+<tr>
+<td>Range walk / AP power cycle</td>
+<td>Recovered in 16 s / 53 s</td>
+</tr>
+<tr>
+<td>OTA over HaLow</td>
+<td>1.05 MB in ~10 s, 3 cycles clean</td>
+</tr>
+</tbody>
+</table></div>
+<p>This fork, ESPHome 2026.9.1 (native ESP-IDF 5.5.5), XIAO ESP32-S3 + Wio-WM6180 + HaLowLink 2, AU:</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Test</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Fixes #1-#4: compile, boot, WPA3-SAE, DHCP, mDNS</td>
+<td>Pass (2026-10-12), before the hardware began resetting</td>
+</tr>
+<tr>
+<td>Fixes #5-#21: compile, validation, network patch on 4 ESPHome releases, SDK download</td>
+<td>Pass</td>
+</tr>
+<tr>
+<td><code>main</code> on hardware (2026-10-13, after a 5 V capacitor fix): boot, connect, DHCP, mDNS via ESPHome's own records, connect-timeout → timer reconnect cycle (5 cycles, no crash or overlap)</td>
+<td>Pass</td>
+</tr>
+<tr>
+<td>Home Assistant API over HaLow (fix #5 at runtime), scan, OTA over HaLow, recovery after link loss, static IP DNS, long soak</td>
+<td><strong>Not yet tested</strong> (HA's network can't reach the HaLow network yet)</td>
+</tr>
+</tbody>
+</table></div></div>
+    <div class="links"><a class="btn small" href="https://github.com/DefeatedWarrior/esphome-halow/blob/main/docs/DEVELOPMENT.md">View source on GitHub</a></div>
+    <nav class="pn"><a href="hardware.html"><small>← Previous</small>Hardware</a><a class="r" href="architecture.html"><small>Next →</small>Architecture</a></nav>
+  </article>
+</div>
+
+<footer>Open-source hardware and firmware by <a href="https://github.com/DefeatedWarrior">DefeatedWarrior</a>. Documentation pages are rendered from each project's repository.</footer>
+</body>
+</html>

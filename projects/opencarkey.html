@@ -1,0 +1,75 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenCarKey · DefeatedWarrior</title>
+<meta name="description" content="DIY remote car key and keyless entry: Flutter app plus ESP32 lock controller with rolling-code authentication.">
+<link rel="stylesheet" href="../assets/style.css">
+
+</head>
+<body>
+<header class="site-header"><div class="in">
+  <a class="brand" href="../index.html"><span class="bulb"></span>DefeatedWarrior</a>
+  <nav>
+    <a href="../index.html#projects">Projects</a><a href="../docs.html">Docs</a><a href="https://github.com/DefeatedWarrior">GitHub</a>
+    <form class="search" action="../search.html" method="get" role="search"><input type="search" name="q" placeholder="Search docs…" aria-label="Search docs"></form>
+  </nav>
+</div></header>
+
+<div class="page">
+  <aside class="toc"><a class="back" href="../index.html#projects">← All projects</a><h4>On this page</h4><a href="#what">What it is</a><a href="#features">Features</a><a href="#screens">The app</a><a href="#mine">My contributions</a><a href="#start">Getting started</a><a href="#credits">Credits</a><a href="#docs-index">Documentation</a></aside>
+  <article>
+    <div class="crumbs"><a href="../index.html">Home</a> / Projects / OpenCarKey</div>
+    <h1>OpenCarKey</h1>
+    <p class="sub">A DIY remote car key and keyless entry: a Flutter phone app plus an ESP32 lock controller.</p>
+    <p><span class="badge fork">Contributor</span> <span class="badge working">In development</span></p>
+    <dl class="facts"><div><dt>Upstream project</dt><dd><a href="https://github.com/Mauznemo/OpenCarKey">Mauznemo/OpenCarKey</a></dd></div><div><dt>Original author</dt><dd><a href="https://github.com/Mauznemo">Mauznemo</a></dd></div><div><dt>App</dt><dd>Flutter (Android)</dd></div><div><dt>Controller</dt><dd>ESP32, PlatformIO</dd></div></dl>
+    
+<h2 id="what">What it is</h2>
+<p>OpenCarKey is an open-source project for building your own remote car key or keyless entry. A mobile app talks to an ESP32 lock controller wired into the car, and you decide in firmware which features your vehicle has.</p>
+
+<h2 id="features">Features</h2>
+<ul>
+<li>Lock, unlock, open the trunk or remote start the engine from your phone.</li>
+<li>Proximity key with a customisable trigger range to auto lock and unlock as you approach or leave.</li>
+<li>Multiple vehicles, and a home screen widget.</li>
+<li>Authenticated commands: an HMAC that includes a per-device increasing counter (rolling codes) to prevent replay attacks.</li>
+<li>Features enabled in the controller's <code>config.h</code> show up automatically in the app's UI.</li>
+</ul>
+<div class="note warn"><p><strong>Development phase.</strong> The project may still contain bugs; the rolling-counter sync in particular has been an area of active fixing.</p></div>
+
+<h2 id="screens">The app</h2>
+<div class="gallery phones">
+  <figure><img src="../assets/img/ocp-home.jpg" alt="Home screen" loading="lazy"></figure>
+  <figure><img src="../assets/img/ocp-edit.jpg" alt="Edit vehicle screen" loading="lazy"></figure>
+  <figure><img src="../assets/img/ocp-settings.jpg" alt="Settings screen" loading="lazy"></figure>
+  <figure><img src="../assets/img/ocp-widget.jpg" alt="Home screen widget" loading="lazy"></figure>
+</div>
+
+<h2 id="mine">My contributions</h2>
+<p>The project was created by Mauznemo, who wrote most of it. My changes, from the commit history:</p>
+<ul>
+<li>A full round of audit fixes.</li>
+<li>Disconnect alerts.</li>
+<li>A proximity overhaul.</li>
+<li>Dependency updates.</li>
+<li>A fix for rolling-counter desync, and debug output disabled for deployment.</li>
+</ul>
+
+<h2 id="start">Getting started</h2>
+<ol>
+<li><strong>App:</strong> open <code>MobileApp/</code> in Android Studio or any Flutter-capable editor.</li>
+<li><strong>Controller:</strong> open <code>Firmware/LockController/</code> in PlatformIO, add your lock/unlock code, set features, password and device name in <code>config.h</code>, then upload to the ESP32 and pair it with the app.</li>
+</ol>
+<div class="links"><a class="btn primary" href="https://github.com/Mauznemo/OpenCarKey">Upstream repository</a><a class="btn" href="opencarkey/lock-controller.html">Lock controller docs</a><a class="btn" href="opencarkey/architecture.html">Architecture</a></div>
+
+<h2 id="credits">Credits</h2>
+<p>Created by <a href="https://github.com/Mauznemo">Mauznemo</a>. Contributions by DefeatedWarrior as listed above. Contributions are developed in a private working copy; the upstream repository is the place to get the code.</p>
+<h2 id="docs-index">Documentation</h2><p>Full documentation, rendered from the repository.</p><h3>Documentation</h3><ul class="doclist doc-index"><li><a href="opencarkey/architecture.html">Architecture and BLE protocol</a></li><li><a href="opencarkey/lock-controller.html">Lock Controller</a></li><li><a href="opencarkey/contributing.html">Contributing</a></li></ul>
+  </article>
+</div>
+
+<footer>Open-source hardware and firmware by <a href="https://github.com/DefeatedWarrior">DefeatedWarrior</a>. Documentation pages are rendered from each project's repository.</footer>
+</body>
+</html>

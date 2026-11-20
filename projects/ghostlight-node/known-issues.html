@@ -1,0 +1,146 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Known Issues · Ghostlight Node</title>
+<meta name="description" content="Known Issues: documentation for Ghostlight Node">
+<link rel="stylesheet" href="../../assets/style.css">
+
+</head>
+<body>
+<header class="site-header"><div class="in">
+  <a class="brand" href="../../index.html"><span class="bulb"></span>DefeatedWarrior</a>
+  <nav>
+    <a href="../../index.html#projects">Projects</a><a href="../../docs.html">Docs</a><a href="https://github.com/DefeatedWarrior">GitHub</a>
+    <form class="search" action="../../search.html" method="get" role="search"><input type="search" name="q" placeholder="Search docs…" aria-label="Search docs"></form>
+  </nav>
+</div></header>
+
+<div class="page">
+  <aside class="toc docs-nav"><a class="back" href="../../index.html#projects">← All projects</a>
+<a class="proj" href="../ghostlight-node.html">Ghostlight Node</a>
+<h4>Wiki</h4>
+<a href="wiki-home.html">Wiki home</a>
+<a href="getting-started.html">Getting Started</a>
+<a href="hardware-overview.html">Hardware Overview</a>
+<a href="power.html">Power</a>
+<a href="pin-map.html">Pin Map</a>
+<a href="connectors.html">Connectors</a>
+<a href="dmx-ports.html">DMX Ports</a>
+<a href="dmx-wiring.html">DMX Wiring</a>
+<a href="ethernet-and-poe.html">Ethernet and PoE</a>
+<a href="ordering-guide.html">Ordering Guide</a>
+<a href="bill-of-materials.html">Bill of Materials</a>
+<a href="assembly-guide.html">Assembly Guide</a>
+<a href="bring-up-checklist.html">Bring-up Checklist</a>
+<a href="firmware.html">Firmware</a>
+<a href="using-the-node.html">Using the Node</a>
+<a href="troubleshooting.html">Troubleshooting</a>
+<a class="cur" href="known-issues.html">Known Issues</a>
+<div class="sub"><a href="#verified">✅ Verified</a><a href="#not-verified">❓ Not verified</a></div>
+<a href="faq.html">FAQ</a>
+<a href="glossary.html">Glossary</a>
+<a href="roadmap.html">Roadmap</a>
+<a href="contributing.html">Contributing</a>
+<h4>Reference docs</h4>
+<a href="01-overview-and-specifications.html">1. Overview and specifications</a>
+<a href="02-architecture-and-power.html">2. Architecture and power tree</a>
+<a href="03-pinout-and-connectors.html">3. Pin map and connectors</a>
+<a href="04-ethernet-and-poe.html">4. Ethernet and PoE</a>
+<a href="05-dmx-ports.html">5. DMX / RS-485 ports</a>
+<a href="06-usb-programming-debug.html">6. USB, programming and debug</a>
+<a href="07-bom-and-sourcing.html">7. Bill of materials and sourcing</a>
+<a href="08-ordering-guide.html">8. Ordering guide</a>
+<a href="09-assembly-guide.html">9. Assembly guide (hand assembly)</a>
+<a href="10-bring-up-and-test.html">10. Bring-up and test plan</a>
+<a href="11-known-issues-and-verification-status.html">11. Known issues and verification status</a>
+<a href="12-pcb-design-notes.html">12. PCB design notes</a>
+<a href="13-firmware-integration.html">13. Firmware integration</a>
+<a href="14-regenerating-the-design.html">14. Regenerating the design</a>
+<a href="15-roadmap.html">15. Roadmap and ideas for rev2</a>
+<h4>Firmware (upstream ESP-NODE-2RDM)</h4>
+<a href="firmware-overview.html">Firmware overview</a>
+<a href="component-dmx-handler.html">DMX handler component</a>
+<a href="component-network-manager.html">Network manager component</a></aside>
+  <article class="doc">
+    <div class="crumbs"><a href="../../index.html">Home</a> / <a href="../ghostlight-node.html">Ghostlight Node</a> / Wiki</div>
+    <h1>Known Issues</h1>
+    
+    <div class="md"><p>rev1 is <strong>not built or tested</strong>. This page separates what was checked from what was inferred.</p>
+<h2 id="verified">✅ Verified</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Check</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>KiCad DRC (7.0.11)</td>
+<td>0 clearance errors, 0 unconnected, 0 shorts; silkscreen warnings and one library-footprint mismatch (U1) only</td>
+</tr>
+<tr>
+<td>PCB vs schematic nets</td>
+<td>72 nets each, no mismatches</td>
+</tr>
+<tr>
+<td>Gerbers</td>
+<td>exported from the final board and compared</td>
+</tr>
+<tr>
+<td>GPIO map vs firmware</td>
+<td>DMX UARTs and pins, W5500 SPI, status LED and BOOT match <code>board.h</code> / <code>network_manager.c</code></td>
+</tr>
+<tr>
+<td>SN65HVD72 fail-safe</td>
+<td>open, short and idle per the TI datasheet</td>
+</tr>
+<tr>
+<td>LCSC numbers</td>
+<td>all 39 lines matched on 2026-11-11</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="not-verified">❓ Not verified</h2>
+<h3 id="electrical">Electrical</h3>
+<ol>
+<li><strong>No ERC was run</strong> (KiCad 7 CLI has none). Run it in the GUI; an "annotation errors" warning on export was not investigated.</li>
+<li><strong>W5500 analog network</strong> inferred from the WIZnet reference design.</li>
+<li><strong>W5500 LED drive</strong>: about 6 mA each, rating not checked.</li>
+<li><strong>DMX A/B polarity</strong> and edge behaviour need a scope or known-good fixture.</li>
+<li><strong>Bias values (240 Ω)</strong> not checked against E1.20.</li>
+<li><strong>Crystal load</strong> not calculated for this layout.</li>
+<li><strong>USB-only power</strong> is marginal (<a href="power.html">Power</a>).</li>
+<li><strong>5 V rails</strong> use 6.3 V electrolytics with ~1.5 V margin.</li>
+</ol>
+<h3 id="mechanical">Mechanical</h3>
+<ol start="9">
+<li><strong>HR871150C pin map</strong> decoded from a datasheet drawing.</li>
+<li><strong>DP9700 body orientation</strong> unconfirmed.</li>
+<li><strong>TL3342 switch</strong> and <strong>220 µF cap</strong> footprints matched by size only.</li>
+<li><strong>No test points.</strong></li>
+<li><strong>No enclosure drawing</strong>; mounting hole H3 sits close to the RJ45 and PoE module.</li>
+</ol>
+<h3 id="layout">Layout</h3>
+<ol start="14">
+<li>Ethernet pairs run about 35-45 mm and <code>5V_EXT</code> about 65 mm; fine on paper, not prototyped. Routed with Freerouting 1.9.0 (not reproducible bit-for-bit).</li>
+<li>8 silkscreen warnings (appearance only).</li>
+<li>No SMT assembly flow tested.</li>
+</ol>
+<h3 id="firmware">Firmware</h3>
+<ol start="17">
+<li>N8 changes applied but <strong>not built or run</strong>.</li>
+<li>Port LEDs now <code>{5, 6}</code>; bias and W5500 reset defines exist but are unused.</li>
+<li>UART0 is shared by J7 and J5 pins 4-5.</li>
+</ol>
+<p>Full detail: <a href="https://github.com/DefeatedWarrior/ghostlight-node/blob/main/docs/11-known-issues-and-verification-status.md" target="_blank" rel="noopener"><code>docs/11</code></a>.</p></div>
+    <div class="links"><a class="btn small" href="https://github.com/DefeatedWarrior/ghostlight-node/blob/main/wiki/Known-Issues.md">View source on GitHub</a></div>
+    <nav class="pn"><a href="troubleshooting.html"><small>← Previous</small>Troubleshooting</a><a class="r" href="faq.html"><small>Next →</small>FAQ</a></nav>
+  </article>
+</div>
+
+<footer>Open-source hardware and firmware by <a href="https://github.com/DefeatedWarrior">DefeatedWarrior</a>. Documentation pages are rendered from each project's repository.</footer>
+</body>
+</html>

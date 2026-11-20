@@ -1,0 +1,129 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Beltpack boards: KiCad hand-off · OpenTheatreComms Beltpack</title>
+<meta name="description" content="Beltpack boards: KiCad hand-off: documentation for OpenTheatreComms Beltpack">
+<link rel="stylesheet" href="../../assets/style.css">
+
+</head>
+<body>
+<header class="site-header"><div class="in">
+  <a class="brand" href="../../index.html"><span class="bulb"></span>DefeatedWarrior</a>
+  <nav>
+    <a href="../../index.html#projects">Projects</a><a href="../../docs.html">Docs</a><a href="https://github.com/DefeatedWarrior">GitHub</a>
+    <form class="search" action="../../search.html" method="get" role="search"><input type="search" name="q" placeholder="Search docs…" aria-label="Search docs"></form>
+  </nav>
+</div></header>
+
+<div class="page">
+  <aside class="toc docs-nav"><a class="back" href="../../index.html#projects">← All projects</a>
+<a class="proj" href="../opentheatrecomms-beltpack.html">OpenTheatreComms Beltpack</a>
+<h4>Design</h4>
+<a href="parts-list.html">Parts list</a>
+<a href="printed-parts.html">Printed parts</a>
+<h4>Repository docs</h4>
+<a href="readme.html">Repository README</a>
+<a href="kicad-starter-pack.html">OpenTheatreComms beltpack: KiCad starter pack</a>
+<a class="cur" href="board-hand-off.html">Beltpack boards: KiCad hand-off</a>
+<div class="sub"><a href="#files">Files</a><a href="#frames">Frames</a><a href="#boards">Boards</a><a href="#things-the-case-expects">Things the case expects</a><a href="#check-before-layout">Check before layout</a></div></aside>
+  <article class="doc">
+    <div class="crumbs"><a href="../../index.html">Home</a> / <a href="../opentheatrecomms-beltpack.html">OpenTheatreComms Beltpack</a> / Repository docs</div>
+    <h1>Beltpack boards: KiCad hand-off</h1>
+    
+    <div class="md"><p>All sizes in mm. The shapes come from <code>final_bp.py</code> (CadQuery), which also builds the case, so changing a constant there and
+re-running <code>export_boards.py</code> regenerates everything here.</p>
+<h2 id="files">Files</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>File</th>
+<th>Use</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>*_edge_cuts.dxf</code></td>
+<td>Board outline only, with true arcs. In the PCB editor use File → Import → Graphics, layer <strong>Edge.Cuts</strong>, scale 1, units mm.</td>
+</tr>
+<tr>
+<td><code>*.dxf</code></td>
+<td>Same outline plus layers <code>Holes</code>, <code>Place_F</code>, <code>Place_B</code> and <code>Mech</code> (part envelopes, keycaps, dials, case bosses). Import onto <strong>User.1 / User.2</strong> as a placement guide.</td>
+</tr>
+<tr>
+<td><code>*_drawing.png</code></td>
+<td>Dimensioned drawing of each board.</td>
+</tr>
+<tr>
+<td><code>placement.csv</code></td>
+<td>Every part centre, envelope and height, plus the mounting holes, in each board's frame.</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="frames">Frames</h2>
+<ul>
+<li><strong>Top PCB</strong>, viewed from above (top side = F.Cu). Origin at the board centre; +X to the right, +Y toward the back (hip) edge.
+  The front edge is R427.4 and the back edge R402.6, both centred at (0, +415.0). The ends are R12.4 about (±37.5, +1.7).</li>
+<li><strong>Main PCB</strong>, viewed from the front (front face = F.Cu). Origin at the case centre; +Y up. The bottom edge is y = −36.0.</li>
+<li><strong>Pack pad board</strong>, viewed from the front, in the case frame (it spans x 0…24, y −19…−11).</li>
+</ul>
+<h2 id="boards">Boards</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Board</th>
+<th>Size</th>
+<th>Thickness</th>
+<th>Mounting</th>
+<th>Height limits</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Top PCB</td>
+<td>99.8 × 26.5 curved pill</td>
+<td>1.6, 2 layers</td>
+<td>4 × M2 (2.2 mm holes) at (±20, −9.0), (±20, +10.5) into top-plate bosses</td>
+<td>F: 3.0 (2.5 under keycap flanges, 1.4 under the OLED glass). B: encoders 6.5; nothing else inside R17.4 of each dial axis; ≈4 elsewhere</td>
+</tr>
+<tr>
+<td>Main PCB</td>
+<td>87.5 × 64.5 stepped</td>
+<td>1.6, 4 layers</td>
+<td>5 × M2: H1 (−30, −9) is an 18 mm M-F standoff, H2 (38, 12), H3 (−6, 25.5), H4 (38, −32.5), H5 (−10, −32.5)</td>
+<td>F: 5.0 (4.0 inside</td>
+</tr>
+<tr>
+<td>Pack pad board</td>
+<td>24 × 8</td>
+<td>0.8, ENIG</td>
+<td>glued into the pack</td>
+<td>3 pads, 3 mm, at x 6/12/18, y −15</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="things-the-case-expects">Things the case expects</h2>
+<ul>
+<li><strong>Bottom-edge parts</strong> (main PCB, F side): USB4105 centred x 9.0 with its mouth 0.8 past the edge; PJ-320D centred x 22.0, nose 2.1 past the edge;
+  side tact switch centred x −3.0 with its actuator 0.4 past the edge; 3 mm LED at x 32.0, axis 2.0 off the board, lens 1.8 past the edge.</li>
+<li><strong>Front buttons</strong>: PTS815 at (−18, 17.4), (0, 17.4), (18, 17.4) on the F side. The printed caps press straight down on them.</li>
+<li><strong>Top keys</strong>: PTS815 centred under each keycap; the cap flange sits on the switch, so keep the switch height at 2.5.</li>
+<li><strong>Encoders</strong>: PEC12R footprints on the B side of the top board at (±37.5, 1.7); the shaft points down into the dial hub.</li>
+<li><strong>OLED</strong>: glass 34.5 × 23.0 sits on 1.5 mm foam on the F side, its FPC wraps round the back-edge notch (|X| &lt; 16) to a connector on the B side near (0, 8).</li>
+<li><strong>Board link</strong>: 10-way JST SH. Top board B side at (−10, −1.35), top-entry; main board B side at the tab top, x 8, side-entry pointing up.</li>
+<li><strong>Radio</strong>: U.FL at (31, 10.5), B side. Keep copper back from the right-hand edge; the flex antenna sits on the inside of the right end, about 8 mm away.</li>
+<li><strong>ESP32-S3</strong>: antenna end flush with the left edge (x −46.5); no copper on any layer under the antenna (x &lt; −39.5).</li>
+<li><strong>Pogo pins</strong>: three Mill-Max 0906 at (6/12/18, −15), B side, THT. They compress 0.8 mm onto the pack pads.</li>
+</ul>
+<h2 id="check-before-layout">Check before layout</h2>
+<p>These envelopes are typical figures, not confirmed against a drawing: PEC12R body height (6.5), the XLR D-flange (31 × 26 × 2) and depth (21),
+USB4105 body, PTS815 height variant, the side tact switch, JST SH bodies, and where your OLED panel's active area sits on the glass.</p></div>
+    <div class="links"><a class="btn small" href="https://github.com/DefeatedWarrior/OpenTheatreComms-Beltpack/blob/main/cad/out/kicad/README.md">View source on GitHub</a></div>
+    <nav class="pn"><a href="kicad-starter-pack.html"><small>← Previous</small>OpenTheatreComms beltpack: KiCad starter pack</a><span></span></nav>
+  </article>
+</div>
+
+<footer>Open-source hardware and firmware by <a href="https://github.com/DefeatedWarrior">DefeatedWarrior</a>. Documentation pages are rendered from each project's repository.</footer>
+</body>
+</html>

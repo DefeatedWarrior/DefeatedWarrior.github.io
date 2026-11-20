@@ -1,0 +1,502 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DMX handler component · Ghostlight Node</title>
+<meta name="description" content="DMX handler component: documentation for Ghostlight Node">
+<link rel="stylesheet" href="../../assets/style.css">
+
+</head>
+<body>
+<header class="site-header"><div class="in">
+  <a class="brand" href="../../index.html"><span class="bulb"></span>DefeatedWarrior</a>
+  <nav>
+    <a href="../../index.html#projects">Projects</a><a href="../../docs.html">Docs</a><a href="https://github.com/DefeatedWarrior">GitHub</a>
+    <form class="search" action="../../search.html" method="get" role="search"><input type="search" name="q" placeholder="Search docs…" aria-label="Search docs"></form>
+  </nav>
+</div></header>
+
+<div class="page">
+  <aside class="toc docs-nav"><a class="back" href="../../index.html#projects">← All projects</a>
+<a class="proj" href="../ghostlight-node.html">Ghostlight Node</a>
+<h4>Wiki</h4>
+<a href="wiki-home.html">Wiki home</a>
+<a href="getting-started.html">Getting Started</a>
+<a href="hardware-overview.html">Hardware Overview</a>
+<a href="power.html">Power</a>
+<a href="pin-map.html">Pin Map</a>
+<a href="connectors.html">Connectors</a>
+<a href="dmx-ports.html">DMX Ports</a>
+<a href="dmx-wiring.html">DMX Wiring</a>
+<a href="ethernet-and-poe.html">Ethernet and PoE</a>
+<a href="ordering-guide.html">Ordering Guide</a>
+<a href="bill-of-materials.html">Bill of Materials</a>
+<a href="assembly-guide.html">Assembly Guide</a>
+<a href="bring-up-checklist.html">Bring-up Checklist</a>
+<a href="firmware.html">Firmware</a>
+<a href="using-the-node.html">Using the Node</a>
+<a href="troubleshooting.html">Troubleshooting</a>
+<a href="known-issues.html">Known Issues</a>
+<a href="faq.html">FAQ</a>
+<a href="glossary.html">Glossary</a>
+<a href="roadmap.html">Roadmap</a>
+<a href="contributing.html">Contributing</a>
+<h4>Reference docs</h4>
+<a href="01-overview-and-specifications.html">1. Overview and specifications</a>
+<a href="02-architecture-and-power.html">2. Architecture and power tree</a>
+<a href="03-pinout-and-connectors.html">3. Pin map and connectors</a>
+<a href="04-ethernet-and-poe.html">4. Ethernet and PoE</a>
+<a href="05-dmx-ports.html">5. DMX / RS-485 ports</a>
+<a href="06-usb-programming-debug.html">6. USB, programming and debug</a>
+<a href="07-bom-and-sourcing.html">7. Bill of materials and sourcing</a>
+<a href="08-ordering-guide.html">8. Ordering guide</a>
+<a href="09-assembly-guide.html">9. Assembly guide (hand assembly)</a>
+<a href="10-bring-up-and-test.html">10. Bring-up and test plan</a>
+<a href="11-known-issues-and-verification-status.html">11. Known issues and verification status</a>
+<a href="12-pcb-design-notes.html">12. PCB design notes</a>
+<a href="13-firmware-integration.html">13. Firmware integration</a>
+<a href="14-regenerating-the-design.html">14. Regenerating the design</a>
+<a href="15-roadmap.html">15. Roadmap and ideas for rev2</a>
+<h4>Firmware (upstream ESP-NODE-2RDM)</h4>
+<a href="firmware-overview.html">Firmware overview</a>
+<a class="cur" href="component-dmx-handler.html">DMX handler component</a>
+<div class="sub"><a href="#overview">Overview</a><a href="#features">Features</a><a href="#hardware-configuration">Hardware Configuration</a><a href="#port-modes">Port Modes</a><a href="#api-reference">API Reference</a><a href="#usage-examples">Usage Examples</a><a href="#performance-characteristics">Performance Characteristics</a><a href="#thread-safety">Thread Safety</a><a href="#task-architecture">Task Architecture</a><a href="#error-handling">Error Handling</a><a href="#dependencies">Dependencies</a><a href="#integration-with-other-components">Integration with Other Components</a><a href="#limitations-and-notes">Limitations and Notes</a><a href="#troubleshooting">Troubleshooting</a></div>
+<a href="component-network-manager.html">Network manager component</a></aside>
+  <article class="doc">
+    <div class="crumbs"><a href="../../index.html">Home</a> / <a href="../ghostlight-node.html">Ghostlight Node</a> / Firmware (upstream ESP-NODE-2RDM)</div>
+    <h1>DMX handler component</h1>
+    <div class="note warn"><p><strong>Upstream firmware docs.</strong> This page documents the ESP-NODE-2RDM firmware by ThinhCNTT22 that Ghostlight Node's firmware is adapted from. It has not been built or run on the Ghostlight rev 1 board yet, so treat board-specific details with care.</p></div>
+    <div class="md"><h2 id="overview">Overview</h2>
+<p>The DMX Handler component provides a unified interface for controlling 2 independent DMX512/RDM ports on the ESP-NODE-2RDM device. It wraps the <code>esp-dmx</code> library and provides high-level APIs for DMX output, input, and RDM operations.</p>
+<h2 id="features">Features</h2>
+<ul>
+<li><strong>Dual Independent Ports</strong>: 2 fully independent DMX512/RDM ports</li>
+<li><strong>Multiple Modes</strong>: DMX Output, DMX Input, RDM Master, RDM Responder</li>
+<li><strong>High Performance</strong>: ~44Hz DMX refresh rate</li>
+<li><strong>Thread-Safe</strong>: All APIs protected with mutexes</li>
+<li><strong>Flexible Configuration</strong>: Per-port mode and universe assignment</li>
+<li><strong>Statistics</strong>: Frame counters and error tracking</li>
+<li><strong>Callback Support</strong>: Asynchronous notifications for received data and RDM discovery</li>
+</ul>
+<h2 id="hardware-configuration">Hardware Configuration</h2>
+<h3 id="port-1">Port 1</h3>
+<ul>
+<li><strong>TX Pin</strong>: GPIO 17</li>
+<li><strong>RX Pin</strong>: GPIO 16</li>
+<li><strong>Direction Pin</strong>: GPIO 21</li>
+<li><strong>UART</strong>: UART_NUM_1</li>
+</ul>
+<h3 id="port-2">Port 2</h3>
+<ul>
+<li><strong>TX Pin</strong>: GPIO 19</li>
+<li><strong>RX Pin</strong>: GPIO 18</li>
+<li><strong>Direction Pin</strong>: GPIO 20</li>
+<li><strong>UART</strong>: UART_NUM_2</li>
+</ul>
+<h3 id="rs485-transceiver">RS485 Transceiver</h3>
+<p>Each port requires an RS485 transceiver (e.g., MAX485, MAX3485) with:
+- TX connected to MCU TX pin
+- RX connected to MCU RX pin
+- DE/RE connected to MCU Direction pin</p>
+<h2 id="port-modes">Port Modes</h2>
+<h3 id="dmx_mode_output-0">DMX_MODE_OUTPUT (0)</h3>
+<p>Standard DMX512 output mode:
+- Continuously sends 512 channels at ~44Hz
+- No RDM support
+- Lowest latency</p>
+<h3 id="dmx_mode_input-1">DMX_MODE_INPUT (1)</h3>
+<p>DMX512 input/monitoring mode:
+- Receives DMX frames from upstream controller
+- Triggers callback on frame reception
+- Can read last received frame</p>
+<h3 id="dmx_mode_rdm_master-2">DMX_MODE_RDM_MASTER (2)</h3>
+<p>DMX output with RDM master capability:
+- Sends DMX frames at ~44Hz
+- Can perform RDM discovery
+- Can GET/SET RDM parameters
+- Controls RDM responder devices</p>
+<h3 id="dmx_mode_rdm_responder-3">DMX_MODE_RDM_RESPONDER (3)</h3>
+<p>RDM responder mode:
+- Responds to RDM discovery
+- Responds to RDM GET/SET commands
+- Allows configuration via RDM controllers</p>
+<h3 id="dmx_mode_disabled-4">DMX_MODE_DISABLED (4)</h3>
+<p>Port disabled:
+- No DMX transmission or reception
+- Driver uninstalled
+- Lowest power consumption</p>
+<h2 id="api-reference">API Reference</h2>
+<h3 id="initialization">Initialization</h3>
+<h4 id="esp_err_t-dmx_handler_initvoid"><code>esp_err_t dmx_handler_init(void)</code></h4>
+<p>Initialize the DMX handler module. Must be called before any other functions.</p>
+<p><strong>Returns:</strong>
+- <code>ESP_OK</code> on success
+- <code>ESP_ERR_NO_MEM</code> if memory allocation failed
+- <code>ESP_ERR_INVALID_STATE</code> if already initialized</p>
+<p><strong>Example:</strong></p>
+<pre><code class="language-c">ESP_ERROR_CHECK(dmx_handler_init());
+</code></pre>
+<h4 id="esp_err_t-dmx_handler_deinitvoid"><code>esp_err_t dmx_handler_deinit(void)</code></h4>
+<p>Deinitialize the module and free resources.</p>
+<h3 id="port-configuration">Port Configuration</h3>
+<h4 id="esp_err_t-dmx_handler_configure_portuint8_t-port-const-port_config_t-config"><code>esp_err_t dmx_handler_configure_port(uint8_t port, const port_config_t *config)</code></h4>
+<p>Configure a port with mode and universe settings.</p>
+<p><strong>Parameters:</strong>
+- <code>port</code>: Port number (1 or 2)
+- <code>config</code>: Port configuration from config_manager</p>
+<p><strong>Returns:</strong>
+- <code>ESP_OK</code> on success
+- <code>ESP_ERR_INVALID_ARG</code> if parameters invalid
+- <code>ESP_FAIL</code> if configuration failed</p>
+<p><strong>Example:</strong></p>
+<pre><code class="language-c">config_t *config = config_get();
+ESP_ERROR_CHECK(dmx_handler_configure_port(DMX_PORT_1, &amp;config-&gt;port1));
+</code></pre>
+<h4 id="esp_err_t-dmx_handler_start_portuint8_t-port"><code>esp_err_t dmx_handler_start_port(uint8_t port)</code></h4>
+<p>Start a configured port.</p>
+<p><strong>Example:</strong></p>
+<pre><code class="language-c">ESP_ERROR_CHECK(dmx_handler_start_port(DMX_PORT_1));
+</code></pre>
+<h4 id="esp_err_t-dmx_handler_stop_portuint8_t-port"><code>esp_err_t dmx_handler_stop_port(uint8_t port)</code></h4>
+<p>Stop a running port.</p>
+<h3 id="dmx-output">DMX Output</h3>
+<h4 id="esp_err_t-dmx_handler_send_dmxuint8_t-port-const-uint8_t-data"><code>esp_err_t dmx_handler_send_dmx(uint8_t port, const uint8_t *data)</code></h4>
+<p>Send a complete DMX frame (512 channels).</p>
+<p><strong>Parameters:</strong>
+- <code>port</code>: Port number (1 or 2)
+- <code>data</code>: Pointer to 512-byte DMX data array</p>
+<p><strong>Returns:</strong>
+- <code>ESP_OK</code> on success
+- <code>ESP_ERR_INVALID_STATE</code> if port not in output mode</p>
+<p><strong>Example:</strong></p>
+<pre><code class="language-c">uint8_t dmx_data[512];
+memset(dmx_data, 0, 512);
+dmx_data[0] = 255; // Channel 1 = 100%
+dmx_data[1] = 128; // Channel 2 = 50%
+
+ESP_ERROR_CHECK(dmx_handler_send_dmx(DMX_PORT_1, dmx_data));
+</code></pre>
+<h4 id="esp_err_t-dmx_handler_set_channeluint8_t-port-uint16_t-channel-uint8_t-value"><code>esp_err_t dmx_handler_set_channel(uint8_t port, uint16_t channel, uint8_t value)</code></h4>
+<p>Set a single DMX channel value.</p>
+<p><strong>Parameters:</strong>
+- <code>port</code>: Port number (1 or 2)
+- <code>channel</code>: Channel number (1-512)
+- <code>value</code>: Channel value (0-255)</p>
+<p><strong>Example:</strong></p>
+<pre><code class="language-c">// Set channel 1 to full brightness
+ESP_ERROR_CHECK(dmx_handler_set_channel(DMX_PORT_1, 1, 255));
+</code></pre>
+<h4 id="esp_err_t-dmx_handler_set_channelsuint8_t-port-uint16_t-start_channel-const-uint8_t-data-uint16_t-length"><code>esp_err_t dmx_handler_set_channels(uint8_t port, uint16_t start_channel, const uint8_t *data, uint16_t length)</code></h4>
+<p>Set multiple consecutive DMX channels.</p>
+<p><strong>Example:</strong></p>
+<pre><code class="language-c">uint8_t rgb[3] = {255, 0, 128}; // Red, Green, Blue
+ESP_ERROR_CHECK(dmx_handler_set_channels(DMX_PORT_1, 1, rgb, 3));
+</code></pre>
+<h4 id="esp_err_t-dmx_handler_blackoutuint8_t-port"><code>esp_err_t dmx_handler_blackout(uint8_t port)</code></h4>
+<p>Set all 512 channels to 0 (blackout).</p>
+<p><strong>Example:</strong></p>
+<pre><code class="language-c">ESP_ERROR_CHECK(dmx_handler_blackout(DMX_PORT_1));
+</code></pre>
+<h3 id="dmx-input">DMX Input</h3>
+<h4 id="esp_err_t-dmx_handler_read_dmxuint8_t-port-uint8_t-data-uint32_t-timeout_ms"><code>esp_err_t dmx_handler_read_dmx(uint8_t port, uint8_t *data, uint32_t timeout_ms)</code></h4>
+<p>Read the last received DMX frame.</p>
+<p><strong>Parameters:</strong>
+- <code>port</code>: Port number (1 or 2)
+- <code>data</code>: Buffer to store 512 bytes
+- <code>timeout_ms</code>: Timeout in milliseconds (0 = no wait)</p>
+<p><strong>Returns:</strong>
+- <code>ESP_OK</code> on success
+- <code>ESP_ERR_TIMEOUT</code> if no recent frame
+- <code>ESP_ERR_INVALID_STATE</code> if not in input mode</p>
+<p><strong>Example:</strong></p>
+<pre><code class="language-c">uint8_t dmx_data[512];
+esp_err_t ret = dmx_handler_read_dmx(DMX_PORT_1, dmx_data, 1000);
+if (ret == ESP_OK) {
+    ESP_LOGI(TAG, &quot;Channel 1: %d&quot;, dmx_data[0]);
+}
+</code></pre>
+<h4 id="esp_err_t-dmx_handler_register_rx_callbackuint8_t-port-dmx_rx_callback_t-callback-void-user_data"><code>esp_err_t dmx_handler_register_rx_callback(uint8_t port, dmx_rx_callback_t callback, void *user_data)</code></h4>
+<p>Register callback for received DMX frames.</p>
+<p><strong>Callback signature:</strong></p>
+<pre><code class="language-c">typedef void (*dmx_rx_callback_t)(uint8_t port, const uint8_t *data, size_t size, void *user_data);
+</code></pre>
+<p><strong>Example:</strong></p>
+<pre><code class="language-c">static void on_dmx_received(uint8_t port, const uint8_t *data, size_t size, void *user_data) {
+    ESP_LOGI(TAG, &quot;DMX received on port %d: Channel 1 = %d&quot;, port, data[0]);
+}
+
+dmx_handler_register_rx_callback(DMX_PORT_1, on_dmx_received, NULL);
+</code></pre>
+<h3 id="rdm-operations">RDM Operations</h3>
+<h4 id="esp_err_t-dmx_handler_rdm_discoveruint8_t-port"><code>esp_err_t dmx_handler_rdm_discover(uint8_t port)</code></h4>
+<p>Start RDM device discovery (asynchronous).</p>
+<p><strong>Example:</strong></p>
+<pre><code class="language-c">ESP_ERROR_CHECK(dmx_handler_rdm_discover(DMX_PORT_1));
+</code></pre>
+<h4 id="esp_err_t-dmx_handler_get_rdm_devicesuint8_t-port-rdm_device_t-devices-size_t-count"><code>esp_err_t dmx_handler_get_rdm_devices(uint8_t port, rdm_device_t *devices, size_t *count)</code></h4>
+<p>Get list of discovered RDM devices.</p>
+<p><strong>Example:</strong></p>
+<pre><code class="language-c">rdm_device_t devices[DMX_MAX_DEVICES];
+size_t count = DMX_MAX_DEVICES;
+
+ESP_ERROR_CHECK(dmx_handler_get_rdm_devices(DMX_PORT_1, devices, &amp;count));
+ESP_LOGI(TAG, &quot;Found %d RDM devices&quot;, count);
+
+for (int i = 0; i &lt; count; i++) {
+    ESP_LOGI(TAG, &quot;Device %d: %s&quot;, i, devices[i].device_label);
+}
+</code></pre>
+<h4 id="esp_err_t-dmx_handler_rdm_getuint8_t-port-const-rdm_uid_t-uid-uint16_t-pid-uint8_t-response_data-size_t-response_size"><code>esp_err_t dmx_handler_rdm_get(uint8_t port, const rdm_uid_t uid, uint16_t pid, uint8_t *response_data, size_t *response_size)</code></h4>
+<p>Send RDM GET command.</p>
+<p><strong>Example:</strong></p>
+<pre><code class="language-c">rdm_uid_t uid = {0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC};
+uint8_t response[32];
+size_t response_size = sizeof(response);
+
+esp_err_t ret = dmx_handler_rdm_get(DMX_PORT_1, uid, RDM_PID_DEVICE_INFO, 
+                                     response, &amp;response_size);
+</code></pre>
+<h4 id="esp_err_t-dmx_handler_rdm_setuint8_t-port-const-rdm_uid_t-uid-uint16_t-pid-const-uint8_t-data-size_t-size"><code>esp_err_t dmx_handler_rdm_set(uint8_t port, const rdm_uid_t uid, uint16_t pid, const uint8_t *data, size_t size)</code></h4>
+<p>Send RDM SET command.</p>
+<p><strong>Example:</strong></p>
+<pre><code class="language-c">rdm_uid_t uid = {0x12, 0x34, 0x56, 0x78, 0x9A, 0xBC};
+uint16_t start_address = 1;
+
+esp_err_t ret = dmx_handler_rdm_set(DMX_PORT_1, uid, RDM_PID_DMX_START_ADDRESS,
+                                    (uint8_t*)&amp;start_address, sizeof(start_address));
+</code></pre>
+<h3 id="status-and-monitoring">Status and Monitoring</h3>
+<h4 id="esp_err_t-dmx_handler_get_port_statusuint8_t-port-dmx_port_status_t-status"><code>esp_err_t dmx_handler_get_port_status(uint8_t port, dmx_port_status_t *status)</code></h4>
+<p>Get port status and statistics.</p>
+<p><strong>Example:</strong></p>
+<pre><code class="language-c">dmx_port_status_t status;
+ESP_ERROR_CHECK(dmx_handler_get_port_status(DMX_PORT_1, &amp;status));
+
+ESP_LOGI(TAG, &quot;Port 1 Status:&quot;);
+ESP_LOGI(TAG, &quot;  Mode: %d&quot;, status.mode);
+ESP_LOGI(TAG, &quot;  Active: %s&quot;, status.is_active ? &quot;Yes&quot; : &quot;No&quot;);
+ESP_LOGI(TAG, &quot;  Universe: %d&quot;, status.universe);
+ESP_LOGI(TAG, &quot;  Frames sent: %lu&quot;, status.stats.frames_sent);
+ESP_LOGI(TAG, &quot;  Frames received: %lu&quot;, status.stats.frames_received);
+ESP_LOGI(TAG, &quot;  RDM devices: %d&quot;, status.rdm_device_count);
+</code></pre>
+<h2 id="usage-examples">Usage Examples</h2>
+<h3 id="example-1-simple-dmx-output">Example 1: Simple DMX Output</h3>
+<pre><code class="language-c">#include &quot;dmx_handler.h&quot;
+
+void app_main(void) {
+    // Initialize
+    ESP_ERROR_CHECK(dmx_handler_init());
+
+    // Configure port 1 for DMX output
+    port_config_t config = {
+        .mode = DMX_MODE_OUTPUT,
+        .universe_primary = 0,
+        .rdm_enabled = false
+    };
+    ESP_ERROR_CHECK(dmx_handler_configure_port(DMX_PORT_1, &amp;config));
+    ESP_ERROR_CHECK(dmx_handler_start_port(DMX_PORT_1));
+
+    // Set some channels
+    ESP_ERROR_CHECK(dmx_handler_set_channel(DMX_PORT_1, 1, 255));
+    ESP_ERROR_CHECK(dmx_handler_set_channel(DMX_PORT_1, 2, 128));
+
+    // DMX will automatically transmit at ~44Hz
+}
+</code></pre>
+<h3 id="example-2-dmx-input-monitoring">Example 2: DMX Input Monitoring</h3>
+<pre><code class="language-c">static void on_dmx_frame(uint8_t port, const uint8_t *data, size_t size, void *user_data) {
+    ESP_LOGI(&quot;DMX&quot;, &quot;Port %d received frame, Ch1=%d, Ch2=%d&quot;, 
+             port, data[0], data[1]);
+}
+
+void app_main(void) {
+    ESP_ERROR_CHECK(dmx_handler_init());
+
+    port_config_t config = {
+        .mode = DMX_MODE_INPUT,
+        .universe_primary = 0
+    };
+    ESP_ERROR_CHECK(dmx_handler_configure_port(DMX_PORT_1, &amp;config));
+    ESP_ERROR_CHECK(dmx_handler_register_rx_callback(DMX_PORT_1, on_dmx_frame, NULL));
+    ESP_ERROR_CHECK(dmx_handler_start_port(DMX_PORT_1));
+
+    // Callback will be triggered on each received frame
+}
+</code></pre>
+<h3 id="example-3-rdm-discovery">Example 3: RDM Discovery</h3>
+<pre><code class="language-c">static void on_rdm_discovery_complete(uint8_t port, uint8_t device_count, void *user_data) {
+    ESP_LOGI(&quot;RDM&quot;, &quot;Discovery complete on port %d: %d devices found&quot;, 
+             port, device_count);
+
+    // Get device list
+    rdm_device_t devices[DMX_MAX_DEVICES];
+    size_t count = DMX_MAX_DEVICES;
+
+    if (dmx_handler_get_rdm_devices(port, devices, &amp;count) == ESP_OK) {
+        for (int i = 0; i &lt; count; i++) {
+            ESP_LOGI(&quot;RDM&quot;, &quot;  Device %d: %s (DMX address: %d)&quot;, 
+                     i, devices[i].device_label, devices[i].dmx_start_address);
+        }
+    }
+}
+
+void app_main(void) {
+    ESP_ERROR_CHECK(dmx_handler_init());
+
+    port_config_t config = {
+        .mode = DMX_MODE_RDM_MASTER,
+        .universe_primary = 0,
+        .rdm_enabled = true
+    };
+    ESP_ERROR_CHECK(dmx_handler_configure_port(DMX_PORT_1, &amp;config));
+    ESP_ERROR_CHECK(dmx_handler_register_discovery_callback(DMX_PORT_1, 
+                                                            on_rdm_discovery_complete, NULL));
+    ESP_ERROR_CHECK(dmx_handler_start_port(DMX_PORT_1));
+
+    // Start discovery
+    ESP_ERROR_CHECK(dmx_handler_rdm_discover(DMX_PORT_1));
+}
+</code></pre>
+<h2 id="performance-characteristics">Performance Characteristics</h2>
+<ul>
+<li><strong>DMX Output Rate</strong>: ~44 Hz (23ms per frame)</li>
+<li><strong>DMX Input Latency</strong>: &lt; 2ms from break detection to callback</li>
+<li><strong>RDM Response Time</strong>: 2-5ms typical</li>
+<li><strong>RDM Discovery Time</strong>: ~2 seconds for 32 devices</li>
+<li><strong>Memory Usage</strong>: ~13 KB total (2KB per port + 8KB task stacks)</li>
+<li><strong>CPU Usage</strong>: &lt; 5% per port at 44Hz (on Core 1)</li>
+</ul>
+<h2 id="thread-safety">Thread Safety</h2>
+<p>All public APIs are thread-safe and can be called from any task:
+- Buffer access protected by mutexes
+- State changes protected by mutexes
+- Statistics atomically updated</p>
+<h2 id="task-architecture">Task Architecture</h2>
+<p>Each active port creates dedicated tasks on Core 1:
+- <strong>Output Task</strong>: Continuously sends DMX frames at 44Hz
+- <strong>Input Task</strong>: Receives and processes incoming DMX/RDM packets</p>
+<p>Task priorities are set to 10 (high priority) to ensure timing accuracy.</p>
+<h2 id="error-handling">Error Handling</h2>
+<p>The component follows ESP-IDF error handling conventions:
+- Returns <code>ESP_OK</code> on success
+- Returns specific error codes on failure
+- Logs errors with ESP_LOGE
+- Logs warnings with ESP_LOGW
+- Logs info with ESP_LOGI</p>
+<p>Common error codes:
+- <code>ESP_ERR_INVALID_ARG</code>: Invalid parameter
+- <code>ESP_ERR_INVALID_STATE</code>: Operation not valid in current state
+- <code>ESP_ERR_NO_MEM</code>: Memory allocation failed
+- <code>ESP_ERR_TIMEOUT</code>: Operation timed out
+- <code>ESP_ERR_NOT_SUPPORTED</code>: Feature not yet implemented</p>
+<h2 id="dependencies">Dependencies</h2>
+<h3 id="external-libraries">External Libraries</h3>
+<ul>
+<li><strong>esp-dmx</strong>: DMX512/RDM driver library by someweisguy</li>
+<li>Provides low-level DMX/RDM protocol handling</li>
+<li>Handles UART configuration and timing</li>
+<li>Manages break/mark-after-break timing</li>
+</ul>
+<h3 id="esp-idf-components">ESP-IDF Components</h3>
+<ul>
+<li><code>driver</code>: UART, GPIO drivers</li>
+<li><code>freertos</code>: Tasks, semaphores, queues</li>
+<li><code>esp_log</code>: Logging</li>
+<li><code>esp_timer</code>: High-resolution timing</li>
+</ul>
+<h3 id="internal-components">Internal Components</h3>
+<ul>
+<li><code>config_manager</code>: Port configuration</li>
+</ul>
+<h2 id="integration-with-other-components">Integration with Other Components</h2>
+<h3 id="config-manager">Config Manager</h3>
+<ul>
+<li>Reads port configuration (mode, universe, RDM settings)</li>
+<li><code>port_config_t</code> structure defines port behavior</li>
+</ul>
+<h3 id="merge-engine-future">Merge Engine (Future)</h3>
+<ul>
+<li>Will receive DMX data from merge engine</li>
+<li>Outputs merged data to DMX ports</li>
+</ul>
+<h3 id="protocol-receivers-future">Protocol Receivers (Future)</h3>
+<ul>
+<li>Art-Net and sACN receivers will feed data to merge engine</li>
+<li>Merge engine will feed to DMX handler</li>
+</ul>
+<h3 id="web-server-future">Web Server (Future)</h3>
+<ul>
+<li>DMX test functions via WebSocket</li>
+<li>RDM discovery and control via HTTP API</li>
+<li>Real-time DMX monitoring</li>
+</ul>
+<h2 id="limitations-and-notes">Limitations and Notes</h2>
+<ol>
+<li>
+<p><strong>RDM Implementation</strong>: RDM GET/SET functions are currently stubs and will be fully implemented when esp-dmx library is integrated and tested.</p>
+</li>
+<li>
+<p><strong>Hardware Dependency</strong>: Requires RS485 transceivers with correct wiring.</p>
+</li>
+<li>
+<p><strong>Timing Accuracy</strong>: DMX timing depends on FreeRTOS tick rate (1000Hz recommended).</p>
+</li>
+<li>
+<p><strong>Buffer Size</strong>: Fixed 512 channels per port (DMX512 standard).</p>
+</li>
+<li>
+<p><strong>Device Limit</strong>: Maximum 32 RDM devices per port.</p>
+</li>
+</ol>
+<h2 id="troubleshooting">Troubleshooting</h2>
+<h3 id="dmx-not-transmitting">DMX Not Transmitting</h3>
+<ul>
+<li>Check RS485 transceiver connections</li>
+<li>Verify GPIO pin assignments</li>
+<li>Check port mode (should be OUTPUT or RDM_MASTER)</li>
+<li>Verify port is started with <code>dmx_handler_start_port()</code></li>
+</ul>
+<h3 id="dmx-not-receiving">DMX Not Receiving</h3>
+<ul>
+<li>Check RS485 transceiver RX connection</li>
+<li>Verify port mode (should be INPUT)</li>
+<li>Check if callback is registered</li>
+<li>Verify upstream DMX source is transmitting</li>
+</ul>
+<h3 id="rdm-not-working">RDM Not Working</h3>
+<ul>
+<li>Ensure port mode is RDM_MASTER</li>
+<li>Check RDM devices are powered and connected</li>
+<li>Verify direction pin is working (DE/RE control)</li>
+<li>Check for termination resistor on DMX line</li>
+</ul>
+<h2 id="future-enhancements">Future Enhancements</h2>
+<ul>
+<li>[ ] Full RDM GET/SET implementation</li>
+<li>[ ] RDM responder personality support</li>
+<li>[ ] DMX timing parameter configuration</li>
+<li>[ ] sACN priority handling</li>
+<li>[ ] DMX input pass-through mode</li>
+<li>[ ] Statistics web interface</li>
+<li>[ ] DMX sniffer/analyzer mode</li>
+</ul>
+<h2 id="references">References</h2>
+<ul>
+<li><a href="https://github.com/someweisguy/esp-dmx" target="_blank" rel="noopener">ESP-DMX Library</a></li>
+<li><a href="https://tsp.esta.org/tsp/documents/docs/ANSI-ESTA_E1-11_2008R2018.pdf" target="_blank" rel="noopener">DMX512 Standard (ANSI E1.11)</a></li>
+<li><a href="https://tsp.esta.org/tsp/documents/docs/ANSI-ESTA_E1-20_2010.pdf" target="_blank" rel="noopener">RDM Standard (ANSI E1.20)</a></li>
+<li><a href="https://github.com/DefeatedWarrior/ghostlight-node/blob/main/firmware/docs/modules/DESIGN_MODULE_DMX_RDM_Handler.md" target="_blank" rel="noopener">Design Document</a></li>
+</ul>
+<h2 id="license">License</h2>
+<p>This component is part of the ESP-NODE-2RDM project.
+See LICENSE file in project root.</p></div>
+    <div class="links"><a class="btn small" href="https://github.com/DefeatedWarrior/ghostlight-node/blob/main/firmware/components/dmx_handler/README.md">View source on GitHub</a></div>
+    <nav class="pn"><a href="firmware-overview.html"><small>← Previous</small>Firmware overview</a><a class="r" href="component-network-manager.html"><small>Next →</small>Network manager component</a></nav>
+  </article>
+</div>
+
+<footer>Open-source hardware and firmware by <a href="https://github.com/DefeatedWarrior">DefeatedWarrior</a>. Documentation pages are rendered from each project's repository.</footer>
+</body>
+</html>

@@ -1,0 +1,178 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Wiki home · Ghostlight Node</title>
+<meta name="description" content="Wiki home: documentation for Ghostlight Node">
+<link rel="stylesheet" href="../../assets/style.css">
+
+</head>
+<body>
+<header class="site-header"><div class="in">
+  <a class="brand" href="../../index.html"><span class="bulb"></span>DefeatedWarrior</a>
+  <nav>
+    <a href="../../index.html#projects">Projects</a><a href="../../docs.html">Docs</a><a href="https://github.com/DefeatedWarrior">GitHub</a>
+    <form class="search" action="../../search.html" method="get" role="search"><input type="search" name="q" placeholder="Search docs…" aria-label="Search docs"></form>
+  </nav>
+</div></header>
+
+<div class="page">
+  <aside class="toc docs-nav"><a class="back" href="../../index.html#projects">← All projects</a>
+<a class="proj" href="../ghostlight-node.html">Ghostlight Node</a>
+<h4>Wiki</h4>
+<a class="cur" href="wiki-home.html">Wiki home</a>
+<div class="sub"><a href="#where-to-go">🧭 Where to go</a><a href="#quick-facts">⚡ Quick facts</a></div>
+<a href="getting-started.html">Getting Started</a>
+<a href="hardware-overview.html">Hardware Overview</a>
+<a href="power.html">Power</a>
+<a href="pin-map.html">Pin Map</a>
+<a href="connectors.html">Connectors</a>
+<a href="dmx-ports.html">DMX Ports</a>
+<a href="dmx-wiring.html">DMX Wiring</a>
+<a href="ethernet-and-poe.html">Ethernet and PoE</a>
+<a href="ordering-guide.html">Ordering Guide</a>
+<a href="bill-of-materials.html">Bill of Materials</a>
+<a href="assembly-guide.html">Assembly Guide</a>
+<a href="bring-up-checklist.html">Bring-up Checklist</a>
+<a href="firmware.html">Firmware</a>
+<a href="using-the-node.html">Using the Node</a>
+<a href="troubleshooting.html">Troubleshooting</a>
+<a href="known-issues.html">Known Issues</a>
+<a href="faq.html">FAQ</a>
+<a href="glossary.html">Glossary</a>
+<a href="roadmap.html">Roadmap</a>
+<a href="contributing.html">Contributing</a>
+<h4>Reference docs</h4>
+<a href="01-overview-and-specifications.html">1. Overview and specifications</a>
+<a href="02-architecture-and-power.html">2. Architecture and power tree</a>
+<a href="03-pinout-and-connectors.html">3. Pin map and connectors</a>
+<a href="04-ethernet-and-poe.html">4. Ethernet and PoE</a>
+<a href="05-dmx-ports.html">5. DMX / RS-485 ports</a>
+<a href="06-usb-programming-debug.html">6. USB, programming and debug</a>
+<a href="07-bom-and-sourcing.html">7. Bill of materials and sourcing</a>
+<a href="08-ordering-guide.html">8. Ordering guide</a>
+<a href="09-assembly-guide.html">9. Assembly guide (hand assembly)</a>
+<a href="10-bring-up-and-test.html">10. Bring-up and test plan</a>
+<a href="11-known-issues-and-verification-status.html">11. Known issues and verification status</a>
+<a href="12-pcb-design-notes.html">12. PCB design notes</a>
+<a href="13-firmware-integration.html">13. Firmware integration</a>
+<a href="14-regenerating-the-design.html">14. Regenerating the design</a>
+<a href="15-roadmap.html">15. Roadmap and ideas for rev2</a>
+<h4>Firmware (upstream ESP-NODE-2RDM)</h4>
+<a href="firmware-overview.html">Firmware overview</a>
+<a href="component-dmx-handler.html">DMX handler component</a>
+<a href="component-network-manager.html">Network manager component</a></aside>
+  <article class="doc">
+    <div class="crumbs"><a href="../../index.html">Home</a> / <a href="../ghostlight-node.html">Ghostlight Node</a> / Wiki</div>
+    <h1>Wiki home</h1>
+    
+    <div class="md"><div align="center">
+
+
+**Open-source Art-Net / sACN → DMX512 node with PoE**
+
+2 × RDM-capable DMX ports · ESP32-S3 · W5500 Ethernet · 802.3af PoE · USB-C
+
+
+
+<img src="https://raw.githubusercontent.com/DefeatedWarrior/ghostlight-node/main/docs/images/board-front.png" width="520" alt="Ghostlight Node rev1" loading="lazy">
+
+</div>
+
+<div class="note warn">
+<p><strong>Warning</strong></p>
+<p><strong>rev1 has not been manufactured or tested.</strong> Treat the first batch as a prototype run. See <a href="known-issues.html">Known Issues</a> before ordering.</p>
+</div>
+<p>A <em>ghost light</em> is the single bulb left burning on a dark stage. This node does the same quiet job: it keeps the rig alive and listening. The goal is a DMX node you can build for a fraction of the price of commercial units, with every file open.</p>
+<h2 id="where-to-go">🧭 Where to go</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>I want to...</th>
+<th>Go to</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Build one</strong></td>
+<td><a href="getting-started.html">Getting Started</a> → <a href="ordering-guide.html">Ordering Guide</a> → <a href="assembly-guide.html">Assembly Guide</a> → <a href="bring-up-checklist.html">Bring-up Checklist</a></td>
+</tr>
+<tr>
+<td><strong>Understand the hardware</strong></td>
+<td><a href="hardware-overview.html">Hardware Overview</a> · <a href="power.html">Power</a> · <a href="ethernet-and-poe.html">Ethernet and PoE</a> · <a href="dmx-ports.html">DMX Ports</a> · USB and Debug</td>
+</tr>
+<tr>
+<td><strong>Wire it up</strong></td>
+<td><a href="pin-map.html">Pin Map</a> · <a href="connectors.html">Connectors</a> · <a href="dmx-wiring.html">DMX Wiring</a></td>
+</tr>
+<tr>
+<td><strong>Flash and use it</strong></td>
+<td><a href="firmware.html">Firmware</a> · <a href="using-the-node.html">Using the Node</a></td>
+</tr>
+<tr>
+<td><strong>Buy the parts</strong></td>
+<td><a href="bill-of-materials.html">Bill of Materials</a></td>
+</tr>
+<tr>
+<td><strong>Fix a problem</strong></td>
+<td><a href="troubleshooting.html">Troubleshooting</a> · <a href="faq.html">FAQ</a></td>
+</tr>
+<tr>
+<td><strong>Help improve it</strong></td>
+<td><a href="known-issues.html">Known Issues</a> · <a href="roadmap.html">Roadmap</a> · <a href="contributing.html">Contributing</a></td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="quick-facts">⚡ Quick facts</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th></th>
+<th></th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Protocols</strong></td>
+<td>Art-Net, sACN (E1.31), RDM (firmware)</td>
+</tr>
+<tr>
+<td><strong>DMX</strong></td>
+<td>2 bidirectional ports, SN65HVD72 transceivers, TVS protected</td>
+</tr>
+<tr>
+<td><strong>MCU</strong></td>
+<td>ESP32-S3-WROOM-1-N8 (8 MB flash, no PSRAM)</td>
+</tr>
+<tr>
+<td><strong>Network</strong></td>
+<td>WIZnet W5500 + HR871150C PoE magjack; Wi-Fi on the module</td>
+</tr>
+<tr>
+<td><strong>Power</strong></td>
+<td>802.3af PoE, USB-C, or external 5 V</td>
+</tr>
+<tr>
+<td><strong>Board</strong></td>
+<td>100 × 100 mm, 2 layers, 4 × M3 holes, hand-assembly friendly</td>
+</tr>
+<tr>
+<td><strong>Cost</strong></td>
+<td>about USD 14-15 for the main parts before passives, PCB and shipping (snapshot)</td>
+</tr>
+<tr>
+<td><strong>Licence</strong></td>
+<td>Hardware CERN-OHL-P-2.0, firmware MIT</td>
+</tr>
+</tbody>
+</table></div>
+<p>Source: <a href="https://github.com/DefeatedWarrior/ghostlight-node" target="_blank" rel="noopener">https://github.com/DefeatedWarrior/ghostlight-node</a></p></div>
+    <div class="links"><a class="btn small" href="https://github.com/DefeatedWarrior/ghostlight-node/blob/main/wiki/Home.md">View source on GitHub</a></div>
+    <nav class="pn"><span></span><a class="r" href="getting-started.html"><small>Next →</small>Getting Started</a></nav>
+  </article>
+</div>
+
+<footer>Open-source hardware and firmware by <a href="https://github.com/DefeatedWarrior">DefeatedWarrior</a>. Documentation pages are rendered from each project's repository.</footer>
+</body>
+</html>

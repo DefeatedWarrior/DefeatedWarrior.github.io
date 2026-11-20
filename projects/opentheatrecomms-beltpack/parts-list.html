@@ -1,0 +1,495 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Parts list · OpenTheatreComms Beltpack</title>
+<meta name="description" content="Parts list: documentation for OpenTheatreComms Beltpack">
+<link rel="stylesheet" href="../../assets/style.css">
+
+</head>
+<body>
+<header class="site-header"><div class="in">
+  <a class="brand" href="../../index.html"><span class="bulb"></span>DefeatedWarrior</a>
+  <nav>
+    <a href="../../index.html#projects">Projects</a><a href="../../docs.html">Docs</a><a href="https://github.com/DefeatedWarrior">GitHub</a>
+    <form class="search" action="../../search.html" method="get" role="search"><input type="search" name="q" placeholder="Search docs…" aria-label="Search docs"></form>
+  </nav>
+</div></header>
+
+<div class="page">
+  <aside class="toc docs-nav"><a class="back" href="../../index.html#projects">← All projects</a>
+<a class="proj" href="../opentheatrecomms-beltpack.html">OpenTheatreComms Beltpack</a>
+<h4>Design</h4>
+<a class="cur" href="parts-list.html">Parts list</a>
+<div class="sub"><a href="#enclosure">Enclosure</a><a href="#controls">Controls</a><a href="#display">Display</a><a href="#electronics">Electronics</a><a href="#hardware">Hardware</a><a href="#connectors">Connectors</a><a href="#power">Power</a><a href="#radio">Radio</a></div>
+<a href="printed-parts.html">Printed parts</a>
+<h4>Repository docs</h4>
+<a href="readme.html">Repository README</a>
+<a href="kicad-starter-pack.html">OpenTheatreComms beltpack: KiCad starter pack</a>
+<a href="board-hand-off.html">Beltpack boards: KiCad hand-off</a></aside>
+  <article class="doc">
+    <div class="crumbs"><a href="../../index.html">Home</a> / <a href="../opentheatrecomms-beltpack.html">OpenTheatreComms Beltpack</a> / Design</div>
+    <h1>Parts list</h1>
+    
+    <div class="md"><p>Every one of the <strong>71 parts</strong> in the CadQuery reference model, grouped as in the model. The interference checker runs a pairwise clash test over all of them. Bought parts are modelled as datasheet envelopes; a few sizes are typical values still to be checked against the exact part you buy (flagged in the description where the model says so).</p>
+<p>Overall envelope with the TPU caps and belt plate: <strong>108.2 × 80.7 × 39.3 mm</strong>.</p>
+<h2 id="enclosure">Enclosure</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Part</th>
+<th>Details</th>
+<th>Made</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Front shell</strong><br><code>front_shell</code></td>
+<td>PETG/ASA. Curved ribbed front, both round ends, bottom face. Holds the main PCB on 5 heat-set M2 inserts, the knob wells and the XLR.</td>
+<td>3D printed</td>
+</tr>
+<tr>
+<td><strong>Back shell</strong><br><code>back_shell</code></td>
+<td>Hip-side skin with the battery opening and two dovetail rails for the belt plate. 4 x M2 screws.</td>
+<td>3D printed</td>
+</tr>
+<tr>
+<td><strong>Top plate</strong><br><code>top_plate</code></td>
+<td>Carries the keycaps, OLED and top PCB as one module; 4 x M2 countersunk screws at the ends, hidden under the TPU cap.</td>
+<td>3D printed</td>
+</tr>
+<tr>
+<td><strong>TPU top cap</strong><br><code>tpu_top</code></td>
+<td>TPU 95A in the department colour; stretches over the top/bottom 7 mm and hides the end screws.</td>
+<td>3D printed</td>
+</tr>
+<tr>
+<td><strong>TPU bottom cap</strong><br><code>tpu_bottom</code></td>
+<td>TPU 95A bumper; cut round the XLR flange and every bottom opening.</td>
+<td>3D printed</td>
+</tr>
+<tr>
+<td><strong>Belt plate</strong><br><code>belt_plate</code></td>
+<td>PETG. Slides up onto the rails until the tongue clicks; doubles as the battery door. Belt slots take up to 38 mm.</td>
+<td>3D printed</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="controls">Controls</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Part</th>
+<th>Details</th>
+<th>Made</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Left dial tyre</strong><br><code>knob_left</code></td>
+<td>TPU 95A truncated cone, 12 mm tall, 36 grip flutes. Hollow: the encoder body sits inside it.</td>
+<td>3D printed</td>
+</tr>
+<tr>
+<td><strong>Left dial hub</strong><br><code>hub_left</code></td>
+<td>PETG insert bonded into the tyre. D-bore on the 6 mm flatted shaft; its stem runs in a bearing hole in the well floor.</td>
+<td>3D printed</td>
+</tr>
+<tr>
+<td><strong>Right dial tyre</strong><br><code>knob_right</code></td>
+<td>TPU 95A truncated cone, 12 mm tall, 36 grip flutes. Hollow: the encoder body sits inside it.</td>
+<td>3D printed</td>
+</tr>
+<tr>
+<td><strong>Right dial hub</strong><br><code>hub_right</code></td>
+<td>PETG insert bonded into the tyre. D-bore on the 6 mm flatted shaft; its stem runs in a bearing hole in the well floor.</td>
+<td>3D printed</td>
+</tr>
+<tr>
+<td><strong>Talk key 1</strong><br><code>keycap_1</code></td>
+<td>Translucent PETG cap, flange retained under the top plate, sits straight on a PTS815; key LED lights it from below.</td>
+<td>3D printed</td>
+</tr>
+<tr>
+<td><strong>Talk key 2</strong><br><code>keycap_2</code></td>
+<td>Translucent PETG cap, flange retained under the top plate, sits straight on a PTS815; key LED lights it from below.</td>
+<td>3D printed</td>
+</tr>
+<tr>
+<td><strong>Talk key 3</strong><br><code>keycap_3</code></td>
+<td>Translucent PETG cap, flange retained under the top plate, sits straight on a PTS815; key LED lights it from below.</td>
+<td>3D printed</td>
+</tr>
+<tr>
+<td><strong>Talk key 4</strong><br><code>keycap_4</code></td>
+<td>Translucent PETG cap, flange retained under the top plate, sits straight on a PTS815; key LED lights it from below.</td>
+<td>3D printed</td>
+</tr>
+<tr>
+<td><strong>Back button</strong><br><code>front_back</code></td>
+<td>PETG cap with a flange behind the recess wall; plunger onto a PTS815 on the main PCB.</td>
+<td>3D printed</td>
+</tr>
+<tr>
+<td><strong>Function button</strong><br><code>front_function</code></td>
+<td>PETG cap with a flange behind the recess wall; plunger onto a PTS815 on the main PCB.</td>
+<td>3D printed</td>
+</tr>
+<tr>
+<td><strong>Menu button</strong><br><code>front_menu</code></td>
+<td>PETG cap with a flange behind the recess wall; plunger onto a PTS815 on the main PCB.</td>
+<td>3D printed</td>
+</tr>
+<tr>
+<td><strong>Power button</strong><br><code>power_plunger</code></td>
+<td>Recessed 0.2 mm below the bottom face so it is hard to knock; long-press to turn on/off.</td>
+<td>3D printed</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="display">Display</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Part</th>
+<th>Details</th>
+<th>Made</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Status light pipe</strong><br><code>status_pipe_L</code></td>
+<td>2.4 mm clear rod over an 0603 RGB/white LED on the top PCB.</td>
+<td>Bought / PCB</td>
+</tr>
+<tr>
+<td><strong>Status light pipe</strong><br><code>status_pipe_R</code></td>
+<td>2.4 mm clear rod over an 0603 RGB/white LED on the top PCB.</td>
+<td>Bought / PCB</td>
+</tr>
+<tr>
+<td><strong>1.3 in OLED</strong><br><code>oled_glass</code></td>
+<td>Bare 1.3 in 128 x 64 SH1106 panel, 34.5 x 23.0 x 1.4, AA 29.42 x 14.7, on 1.5 mm foam tape.</td>
+<td>Bought / PCB</td>
+</tr>
+<tr>
+<td><strong>Foam spacer</strong><br><code>oled_spacer</code></td>
+<td>1.5 mm double-sided foam tape.</td>
+<td>Bought / PCB</td>
+</tr>
+<tr>
+<td><strong>OLED FPC</strong><br><code>oled_fpc</code></td>
+<td>Panel tail wraps round the notch in the PCB back edge to the connector underneath.</td>
+<td>Bought / PCB</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="electronics">Electronics</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Part</th>
+<th>Details</th>
+<th>Made</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Top PCB</strong><br><code>top_pcb</code></td>
+<td>1.6 mm FR4, 2 layers. Keys, OLED, status LEDs on top; both encoders, OLED connector, IO expander and the JST SH link underneath.</td>
+<td>Bought / PCB</td>
+</tr>
+<tr>
+<td><strong>PTS815 (key 1)</strong><br><code>sw_key1</code></td>
+<td>C&amp;K PTS815 SJM 250 SMTR LFS, 4.2 x 3.2 x 2.5 mm SMD tact.</td>
+<td>Bought / PCB</td>
+</tr>
+<tr>
+<td><strong>0603 key LED</strong><br><code>led_key1</code></td>
+<td>0603 LED under the translucent keycap (alert flash).</td>
+<td>Bought / PCB</td>
+</tr>
+<tr>
+<td><strong>PTS815 (key 2)</strong><br><code>sw_key2</code></td>
+<td>C&amp;K PTS815 SJM 250 SMTR LFS, 4.2 x 3.2 x 2.5 mm SMD tact.</td>
+<td>Bought / PCB</td>
+</tr>
+<tr>
+<td><strong>0603 key LED</strong><br><code>led_key2</code></td>
+<td>0603 LED under the translucent keycap (alert flash).</td>
+<td>Bought / PCB</td>
+</tr>
+<tr>
+<td><strong>PTS815 (key 3)</strong><br><code>sw_key3</code></td>
+<td>C&amp;K PTS815 SJM 250 SMTR LFS, 4.2 x 3.2 x 2.5 mm SMD tact.</td>
+<td>Bought / PCB</td>
+</tr>
+<tr>
+<td><strong>0603 key LED</strong><br><code>led_key3</code></td>
+<td>0603 LED under the translucent keycap (alert flash).</td>
+<td>Bought / PCB</td>
+</tr>
+<tr>
+<td><strong>PTS815 (key 4)</strong><br><code>sw_key4</code></td>
+<td>C&amp;K PTS815 SJM 250 SMTR LFS, 4.2 x 3.2 x 2.5 mm SMD tact.</td>
+<td>Bought / PCB</td>
+</tr>
+<tr>
+<td><strong>0603 key LED</strong><br><code>led_key4</code></td>
+<td>0603 LED under the translucent keycap (alert flash).</td>
+<td>Bought / PCB</td>
+</tr>
+<tr>
+<td><strong>0603 status LED</strong><br><code>led_status_L</code></td>
+<td>Status LED under the light pipe.</td>
+<td>Bought / PCB</td>
+</tr>
+<tr>
+<td><strong>0603 status LED</strong><br><code>led_status_R</code></td>
+<td>Status LED under the light pipe.</td>
+<td>Bought / PCB</td>
+</tr>
+<tr>
+<td><strong>OLED FPC connector</strong><br><code>oled_zif</code></td>
+<td>Placeholder: 0.5 mm ZIF or solder pads for the panel's FPC (pin count depends on the panel).</td>
+<td>Bought / PCB</td>
+</tr>
+<tr>
+<td><strong>JST BM10B-SRSS-TB</strong><br><code>jst_top</code></td>
+<td>JST SH 10-pin top-entry, cable to the main PCB.</td>
+<td>Bought / PCB</td>
+</tr>
+<tr>
+<td><strong>TCA9535PWR</strong><br><code>io_exp</code></td>
+<td>16-bit I2C IO expander, TSSOP-24: keys and LEDs.</td>
+<td>Bought / PCB</td>
+</tr>
+<tr>
+<td><strong>PEC12R encoder</strong><br><code>enc_left</code></td>
+<td>Bourns PEC12R-4215F-N0024: 12 mm, no bushing, 15 mm insulated flatted shaft, 24 detents / 24 pulses, no switch. Mounted upside-down on the top PCB.</td>
+<td>Bought / PCB</td>
+</tr>
+<tr>
+<td><strong>PEC12R encoder</strong><br><code>enc_right</code></td>
+<td>Bourns PEC12R-4215F-N0024: 12 mm, no bushing, 15 mm insulated flatted shaft, 24 detents / 24 pulses, no switch. Mounted upside-down on the top PCB.</td>
+<td>Bought / PCB</td>
+</tr>
+<tr>
+<td><strong>Main PCB</strong><br><code>main_pcb</code></td>
+<td>1.6 mm FR4, 4 layers suggested. Vertical behind the front: MCU, radio, codec, power, the three front buttons and every bottom connector.</td>
+<td>Bought / PCB</td>
+</tr>
+<tr>
+<td><strong>PTS815 (Back)</strong><br><code>sw_back</code></td>
+<td>C&amp;K PTS815, front button switch.</td>
+<td>Bought / PCB</td>
+</tr>
+<tr>
+<td><strong>PTS815 (Function)</strong><br><code>sw_function</code></td>
+<td>C&amp;K PTS815, front button switch.</td>
+<td>Bought / PCB</td>
+</tr>
+<tr>
+<td><strong>PTS815 (Menu)</strong><br><code>sw_menu</code></td>
+<td>C&amp;K PTS815, front button switch.</td>
+<td>Bought / PCB</td>
+</tr>
+<tr>
+<td><strong>USB4105-GF-A</strong><br><code>usb_c</code></td>
+<td>GCT USB4105-GF-A USB 2.0 Type-C receptacle, 16-pin top-mount (dims to verify).</td>
+<td>Bought / PCB</td>
+</tr>
+<tr>
+<td><strong>PJ-320D</strong><br><code>trrs</code></td>
+<td>PJ-320D 3.5 mm 4-pole SMD jack, 14.1 x 6.0 x 5.0 incl. nose.</td>
+<td>Bought / PCB</td>
+</tr>
+<tr>
+<td><strong>Side tact (TL1014)</strong><br><code>sw_power</code></td>
+<td>Side-actuated SMD tact switch, e.g. E-Switch TL1014 (dims assumed 6.2 x 3.6 x 3.5).</td>
+<td>Bought / PCB</td>
+</tr>
+<tr>
+<td><strong>3 mm white LED</strong><br><code>lamp_led</code></td>
+<td>3 mm THT white LED, legs bent 90 deg, through a 3.3 mm hole: the flashlight.</td>
+<td>Bought / PCB</td>
+</tr>
+<tr>
+<td><strong>Coin vibration motor</strong><br><code>vib_motor</code></td>
+<td>8 x 2.7 mm coin motor, stuck to the board and driven by a SOT-23 MOSFET.</td>
+<td>Bought / PCB</td>
+</tr>
+<tr>
+<td><strong>ESP32-S3-WROOM-1</strong><br><code>esp32s3</code></td>
+<td>Espressif ESP32-S3-WROOM-1-N8R8, 25.5 x 18 x 3.1, PCB antenna at the left end (keep copper clear under it).</td>
+<td>Bought / PCB</td>
+</tr>
+<tr>
+<td><strong>LR2021 module</strong><br><code>lr2021</code></td>
+<td>Elecrow LR2021 module, 10 x 10 x 2.5, 20 castellated pads at 1.27 mm.</td>
+<td>Bought / PCB</td>
+</tr>
+<tr>
+<td><strong>U.FL (A)</strong><br><code>ufl</code></td>
+<td>Hirose U.FL-R-SMT-1 for antenna A (right end).</td>
+<td>Bought / PCB</td>
+</tr>
+<tr>
+<td><strong>U.FL (B)</strong><br><code>ufl_b</code></td>
+<td>Hirose U.FL-R-SMT-1 for antenna B (left end).</td>
+<td>Bought / PCB</td>
+</tr>
+<tr>
+<td><strong>PE4259 RF switch</strong><br><code>rf_switch</code></td>
+<td>pSemi PE4259 SPDT, SC-70-6, 10 MHz-3 GHz, single-pin control from an ESP32 GPIO: switched antenna diversity.</td>
+<td>Bought / PCB</td>
+</tr>
+<tr>
+<td><strong>RF match + DC block</strong><br><code>rf_match</code></td>
+<td>Unpopulated pi network between the module and the switch, plus 100 pF DC-block footprints on the switch ports.</td>
+<td>Bought / PCB</td>
+</tr>
+<tr>
+<td><strong>NAU88C22YG</strong><br><code>codec</code></td>
+<td>Nuvoton NAU88C22 codec, QFN-32 5 x 5 (needs hot air / hot plate).</td>
+<td>Bought / PCB</td>
+</tr>
+<tr>
+<td><strong>Li-ion charger</strong><br><code>charger</code></td>
+<td>1 A Li-ion charger, ESOP-8 (TP4056 class).</td>
+<td>Bought / PCB</td>
+</tr>
+<tr>
+<td><strong>3.3 V LDO</strong><br><code>ldo</code></td>
+<td>1 A LDO, SOT-23-5 (e.g. TLV75733).</td>
+<td>Bought / PCB</td>
+</tr>
+<tr>
+<td><strong>JST SM10B-SRSS-TB</strong><br><code>jst_main</code></td>
+<td>JST SH 10-pin side-entry at the top of the tab, cable from the top PCB.</td>
+<td>Bought / PCB</td>
+</tr>
+<tr>
+<td><strong>Mill-Max 0906 pogo</strong><br><code>pogo_1</code></td>
+<td>Mill-Max 0906-1-15-20-72-14-11-0 spring pin (4.5 mm tall, 1.4 mm stroke), compressed 0.8 onto the pack pads.</td>
+<td>Bought / PCB</td>
+</tr>
+<tr>
+<td><strong>Mill-Max 0906 pogo</strong><br><code>pogo_2</code></td>
+<td>Mill-Max 0906-1-15-20-72-14-11-0 spring pin (4.5 mm tall, 1.4 mm stroke), compressed 0.8 onto the pack pads.</td>
+<td>Bought / PCB</td>
+</tr>
+<tr>
+<td><strong>Mill-Max 0906 pogo</strong><br><code>pogo_3</code></td>
+<td>Mill-Max 0906-1-15-20-72-14-11-0 spring pin (4.5 mm tall, 1.4 mm stroke), compressed 0.8 onto the pack pads.</td>
+<td>Bought / PCB</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="hardware">Hardware</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Part</th>
+<th>Details</th>
+<th>Made</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>M2 standoff 18 mm</strong><br><code>standoff_H1</code></td>
+<td>M2 male-female hex standoff: holds the main PCB and takes back-shell screw S3.</td>
+<td>Bought / PCB</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="connectors">Connectors</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Part</th>
+<th>Details</th>
+<th>Made</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>XLR-4 male (D-type)</strong><br><code>xlr4</code></td>
+<td>Generic D-size panel XLR-4M, front mount: 24 mm cutout, 2 x M3 on 24 x 19, flange 31 x 26 (Neutrik NC4MD-L-1 envelope: verify your part).</td>
+<td>Bought / PCB</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="power">Power</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Part</th>
+<th>Details</th>
+<th>Made</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Battery pack</strong><br><code>battery_pack</code></td>
+<td>Printed tray: its back is the case back. Hooks at the top, snap at the bottom; the belt plate locks it in.</td>
+<td>3D printed</td>
+</tr>
+<tr>
+<td><strong>104050 Li-ion cell</strong><br><code>cell</code></td>
+<td>1S 3.7 V 2500 mAh 104050 (10 x 40 x 50) with protection board.</td>
+<td>Bought / PCB</td>
+</tr>
+<tr>
+<td><strong>Pack pad board</strong><br><code>pack_lid_pcb</code></td>
+<td>0.8 mm FR4, 3 ENIG pads (BAT+, NTC, BAT-) for the beltpack pogo pins and the charger.</td>
+<td>Bought / PCB</td>
+</tr>
+<tr>
+<td><strong>Pack pads</strong><br><code>pack_pads</code></td>
+<td>Gold pads.</td>
+<td>Bought / PCB</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="radio">Radio</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Part</th>
+<th>Details</th>
+<th>Made</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>915 MHz flex antenna A</strong><br><code>antenna</code></td>
+<td>Molex 211140-0100, 38 x 10 x 0.1 mm, stuck inside the right end. Diversity antenna A.</td>
+<td>Bought / PCB</td>
+</tr>
+<tr>
+<td><strong>915 MHz flex antenna B</strong><br><code>antenna_b</code></td>
+<td>Molex 211140-0100, stuck inside the left end, below the dial well and clear of the XLR. Diversity antenna B; it sits a few mm from the ESP32's Wi-Fi antenna.</td>
+<td>Bought / PCB</td>
+</tr>
+<tr>
+<td><strong>1.13 mm coax A</strong><br><code>coax</code></td>
+<td>Antenna A pigtail, about 100 mm, routed above the pack.</td>
+<td>Bought / PCB</td>
+</tr>
+<tr>
+<td><strong>1.13 mm coax B</strong><br><code>coax_b</code></td>
+<td>Antenna B pigtail, about 150 mm, runs across above the pack and the ESP32.</td>
+<td>Bought / PCB</td>
+</tr>
+</tbody>
+</table></div></div>
+    <div class="links"></div>
+    <nav class="pn"><span></span><a class="r" href="printed-parts.html"><small>Next →</small>Printed parts</a></nav>
+  </article>
+</div>
+
+<footer>Open-source hardware and firmware by <a href="https://github.com/DefeatedWarrior">DefeatedWarrior</a>. Documentation pages are rendered from each project's repository.</footer>
+</body>
+</html>

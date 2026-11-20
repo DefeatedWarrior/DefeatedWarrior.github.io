@@ -1,0 +1,59 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Search · DefeatedWarrior</title>
+<meta name="description" content="Search all documentation">
+<link rel="stylesheet" href="assets/style.css">
+
+</head>
+<body>
+<header class="site-header"><div class="in">
+  <a class="brand" href="index.html"><span class="bulb"></span>DefeatedWarrior</a>
+  <nav>
+    <a href="index.html#projects">Projects</a><a href="docs.html">Docs</a><a href="https://github.com/DefeatedWarrior">GitHub</a>
+    <form class="search" action="search.html" method="get" role="search"><input type="search" name="q" placeholder="Search docs…" aria-label="Search docs"></form>
+  </nav>
+</div></header>
+
+<div class="wrap">
+  <div class="crumbs" style="margin-top:36px"><a href="index.html">Home</a> / Search</div>
+  <h1 class="pagetitle">Search</h1>
+  <form class="bigsearch" action="search.html" method="get"><input id="q" type="search" name="q" placeholder="Search all documentation…" autofocus><button class="btn primary" type="submit">Search</button></form>
+  <div id="results"></div>
+</div>
+<script>
+(async function(){
+  const q = new URLSearchParams(location.search).get('q') || '';
+  const box = document.getElementById('q'); box.value = q;
+  const out = document.getElementById('results');
+  if(!q.trim()){ out.innerHTML = '<p class="muted">Type a term, for example "PoE", "RSSI" or "bring-up".</p>'; return; }
+  let idx = [];
+  try { idx = await (await fetch('search-index.json')).json(); } catch(e) { out.innerHTML = '<p>Search index could not be loaded.</p>'; return; }
+  const terms = q.toLowerCase().split(/\s+/).filter(Boolean);
+  const esc = s => s.replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+  const scored = [];
+  for (const d of idx) {
+    const t = d.t.toLowerCase(), x = d.x.toLowerCase();
+    let s = 0, ok = true;
+    for (const w of terms) {
+      const inT = t.includes(w), inX = x.includes(w);
+      if (!inT && !inX) { ok = false; break; }
+      s += (inT ? 10 : 0) + Math.min(5, x.split(w).length - 1);
+    }
+    if (ok) scored.push([s, d]);
+  }
+  scored.sort((a, b) => b[0] - a[0]);
+  if (!scored.length) { out.innerHTML = '<p>No results for <strong>' + esc(q) + '</strong>.</p>'; return; }
+  out.innerHTML = '<p class="muted">' + scored.length + ' result' + (scored.length === 1 ? '' : 's') + '</p>' + scored.slice(0, 40).map(([s, d]) => {
+    const i = d.x.toLowerCase().indexOf(terms[0]);
+    const snip = i < 0 ? d.x.slice(0, 180) : (i > 70 ? '…' : '') + d.x.slice(Math.max(0, i - 70), i + 150) + '…';
+    return '<div class="result"><a href="' + d.u + '">' + esc(d.t) + '</a><span class="where">' + esc(d.p) + ' · ' + esc(d.g) + '</span><p>' + esc(snip) + '</p></div>';
+  }).join('');
+})();
+</script>
+
+<footer>Open-source hardware and firmware by <a href="https://github.com/DefeatedWarrior">DefeatedWarrior</a>. Documentation pages are rendered from each project's repository.</footer>
+</body>
+</html>

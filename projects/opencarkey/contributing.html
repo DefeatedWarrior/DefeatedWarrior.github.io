@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Contributing · OpenCarKey</title>
+<meta name="description" content="Contributing: documentation for OpenCarKey">
+<link rel="stylesheet" href="../../assets/style.css">
+
+</head>
+<body>
+<header class="site-header"><div class="in">
+  <a class="brand" href="../../index.html"><span class="bulb"></span>DefeatedWarrior</a>
+  <nav>
+    <a href="../../index.html#projects">Projects</a><a href="../../docs.html">Docs</a><a href="https://github.com/DefeatedWarrior">GitHub</a>
+    <form class="search" action="../../search.html" method="get" role="search"><input type="search" name="q" placeholder="Search docs…" aria-label="Search docs"></form>
+  </nav>
+</div></header>
+
+<div class="page">
+  <aside class="toc docs-nav"><a class="back" href="../../index.html#projects">← All projects</a>
+<a class="proj" href="../opencarkey.html">OpenCarKey</a>
+<h4>Documentation</h4>
+<a href="architecture.html">Architecture and BLE protocol</a>
+<a href="lock-controller.html">Lock Controller</a>
+<a class="cur" href="contributing.html">Contributing</a>
+<div class="sub"><a href="#commit-message-guidelines">Commit Message Guidelines</a><a href="#pull-request-guidelines">Pull Request Guidelines</a><a href="#additional-tips">Additional Tips</a></div></aside>
+  <article class="doc">
+    <div class="crumbs"><a href="../../index.html">Home</a> / <a href="../opencarkey.html">OpenCarKey</a> / Documentation</div>
+    <h1>Contributing</h1>
+    
+    <div class="md"><p>Thank you for your interest in contributing to the project! Please take a moment to review the guidelines for contributing.</p>
+<h2 id="commit-message-guidelines">Commit Message Guidelines</h2>
+<p>For your commit messages please follow <a href="https://www.conventionalcommits.org/" target="_blank" rel="noopener">Conventional Commits</a>.
+(If you are using VS Code you can use <a href="https://marketplace.visualstudio.com/items?itemName=vivaxy.vscode-conventional-commits" target="_blank" rel="noopener">this extension</a> to help you follow this convention)</p>
+<ol>
+<li><strong>Structure:</strong>
+   - Use the following format for commit messages:
+     <code>type: subject</code>
+     or
+     <code>type(scope): subject</code></li>
+</ol>
+<ul>
+<li><strong>Type:</strong> A brief type of change (e.g., feat, fix, docs, style, refactor, test, chore).</li>
+<li><strong>Scope (Optional):</strong> The section of the codebase that the change affects (e.g., component, module).</li>
+<li><strong>Subject:</strong> A short description of the change (e.g., "add new login feature").</li>
+</ul>
+<ol start="2">
+<li>
+<p><strong>Examples:</strong>
+   - <code>feat(auth): add user login</code>
+   - <code>fix(api): handle null values in response</code>
+   - <code>docs: update installation instructions</code></p>
+</li>
+<li>
+<p><strong>Body (Optional):</strong>
+   - Use the body to explain what changes you made and why you made them. Wrap the body at 72 characters per line.</p>
+</li>
+<li>
+<p><strong>Footer (Optional):</strong>
+   - Use the footer to reference any related issues or breaking changes. For example:
+     <code>BREAKING CHANGE: refactor authentication middleware
+     Closes #123</code></p>
+</li>
+</ol>
+<h2 id="pull-request-guidelines">Pull Request Guidelines</h2>
+<p>If you modified something in <code>Assets/SmartifyOS</code> keep in mind that anything in there should not be (too) project (car/setup) specific.</p>
+<ol>
+<li>
+<p><strong>Title:</strong>
+   - Use a clear and descriptive title for the pull request that describes the change being made (also use <a href="https://www.conventionalcommits.org/" target="_blank" rel="noopener">Conventional Commits</a> here!).</p>
+</li>
+<li>
+<p><strong>Description:</strong>
+   - Provide a detailed description of the changes in the pull request.</p>
+</li>
+<li>
+<p><strong>Referencing Issues:</strong>
+   - If the pull request addresses an open issue, link to the issue by using the format <code>Closes #issue_number</code>.</p>
+</li>
+</ol>
+<h2 id="additional-tips">Additional Tips</h2>
+<ul>
+<li>Follow the project's coding style and conventions.</li>
+<li>Make sure to pull the latest changes from the main branch before submitting your pull request.</li>
+<li>Don't make multiply different changes that aren't related in one pull request</li>
+</ul></div>
+    <div class="links"></div>
+    <nav class="pn"><a href="lock-controller.html"><small>← Previous</small>Lock Controller</a><span></span></nav>
+  </article>
+</div>
+
+<footer>Open-source hardware and firmware by <a href="https://github.com/DefeatedWarrior">DefeatedWarrior</a>. Documentation pages are rendered from each project's repository.</footer>
+</body>
+</html>

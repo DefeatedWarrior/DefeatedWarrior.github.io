@@ -1,0 +1,421 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>3. Pin map and connectors · Ghostlight Node</title>
+<meta name="description" content="3. Pin map and connectors: documentation for Ghostlight Node">
+<link rel="stylesheet" href="../../assets/style.css">
+
+</head>
+<body>
+<header class="site-header"><div class="in">
+  <a class="brand" href="../../index.html"><span class="bulb"></span>DefeatedWarrior</a>
+  <nav>
+    <a href="../../index.html#projects">Projects</a><a href="../../docs.html">Docs</a><a href="https://github.com/DefeatedWarrior">GitHub</a>
+    <form class="search" action="../../search.html" method="get" role="search"><input type="search" name="q" placeholder="Search docs…" aria-label="Search docs"></form>
+  </nav>
+</div></header>
+
+<div class="page">
+  <aside class="toc docs-nav"><a class="back" href="../../index.html#projects">← All projects</a>
+<a class="proj" href="../ghostlight-node.html">Ghostlight Node</a>
+<h4>Wiki</h4>
+<a href="wiki-home.html">Wiki home</a>
+<a href="getting-started.html">Getting Started</a>
+<a href="hardware-overview.html">Hardware Overview</a>
+<a href="power.html">Power</a>
+<a href="pin-map.html">Pin Map</a>
+<a href="connectors.html">Connectors</a>
+<a href="dmx-ports.html">DMX Ports</a>
+<a href="dmx-wiring.html">DMX Wiring</a>
+<a href="ethernet-and-poe.html">Ethernet and PoE</a>
+<a href="ordering-guide.html">Ordering Guide</a>
+<a href="bill-of-materials.html">Bill of Materials</a>
+<a href="assembly-guide.html">Assembly Guide</a>
+<a href="bring-up-checklist.html">Bring-up Checklist</a>
+<a href="firmware.html">Firmware</a>
+<a href="using-the-node.html">Using the Node</a>
+<a href="troubleshooting.html">Troubleshooting</a>
+<a href="known-issues.html">Known Issues</a>
+<a href="faq.html">FAQ</a>
+<a href="glossary.html">Glossary</a>
+<a href="roadmap.html">Roadmap</a>
+<a href="contributing.html">Contributing</a>
+<h4>Reference docs</h4>
+<a href="01-overview-and-specifications.html">1. Overview and specifications</a>
+<a href="02-architecture-and-power.html">2. Architecture and power tree</a>
+<a class="cur" href="03-pinout-and-connectors.html">3. Pin map and connectors</a>
+<div class="sub"><a href="#gpio-assignments">GPIO assignments</a><a href="#connectors">Connectors</a></div>
+<a href="04-ethernet-and-poe.html">4. Ethernet and PoE</a>
+<a href="05-dmx-ports.html">5. DMX / RS-485 ports</a>
+<a href="06-usb-programming-debug.html">6. USB, programming and debug</a>
+<a href="07-bom-and-sourcing.html">7. Bill of materials and sourcing</a>
+<a href="08-ordering-guide.html">8. Ordering guide</a>
+<a href="09-assembly-guide.html">9. Assembly guide (hand assembly)</a>
+<a href="10-bring-up-and-test.html">10. Bring-up and test plan</a>
+<a href="11-known-issues-and-verification-status.html">11. Known issues and verification status</a>
+<a href="12-pcb-design-notes.html">12. PCB design notes</a>
+<a href="13-firmware-integration.html">13. Firmware integration</a>
+<a href="14-regenerating-the-design.html">14. Regenerating the design</a>
+<a href="15-roadmap.html">15. Roadmap and ideas for rev2</a>
+<h4>Firmware (upstream ESP-NODE-2RDM)</h4>
+<a href="firmware-overview.html">Firmware overview</a>
+<a href="component-dmx-handler.html">DMX handler component</a>
+<a href="component-network-manager.html">Network manager component</a></aside>
+  <article class="doc">
+    <div class="crumbs"><a href="../../index.html">Home</a> / <a href="../ghostlight-node.html">Ghostlight Node</a> / Reference docs</div>
+    <h1>3. Pin map and connectors</h1>
+    
+    <div class="md"><p>The GPIO assignments below are taken from the board source (<code>tools/generator/design.py</code>) and match the firmware's <code>board.h</code> for the DMX ports and the W5500. Module pin numbers are the pin numbers of the ESP32-S3-WROOM-1 module.</p>
+<h2 id="gpio-assignments">GPIO assignments</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>GPIO</th>
+<th>Module pin</th>
+<th>Net</th>
+<th>Function</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>0</td>
+<td>27</td>
+<td>BOOT</td>
+<td>BOOT button (to GND), strapping pin</td>
+</tr>
+<tr>
+<td>1</td>
+<td>39</td>
+<td>BIAS1</td>
+<td>DMX1 bias switch (2N7002 gate, active high)</td>
+</tr>
+<tr>
+<td>2</td>
+<td>38</td>
+<td>BIAS2</td>
+<td>DMX2 bias switch (active high)</td>
+</tr>
+<tr>
+<td>4</td>
+<td>4</td>
+<td>W5500_RST</td>
+<td>W5500 reset (10 k pull-up to 3V3)</td>
+</tr>
+<tr>
+<td>5</td>
+<td>5</td>
+<td>LED_P1</td>
+<td>DMX1 port LED (through 1 k)</td>
+</tr>
+<tr>
+<td>6</td>
+<td>6</td>
+<td>LED_P2</td>
+<td>DMX2 port LED (through 1 k)</td>
+</tr>
+<tr>
+<td>7</td>
+<td>7</td>
+<td>LED_P3</td>
+<td>J5 pin 8, third port LED</td>
+</tr>
+<tr>
+<td>9</td>
+<td>17</td>
+<td>W5500_INT</td>
+<td>W5500 interrupt (10 k pull-up)</td>
+</tr>
+<tr>
+<td>10</td>
+<td>18</td>
+<td>W5500_CS</td>
+<td>W5500 chip select (10 k pull-up)</td>
+</tr>
+<tr>
+<td>11</td>
+<td>19</td>
+<td>W5500_MOSI</td>
+<td>SPI MOSI</td>
+</tr>
+<tr>
+<td>12</td>
+<td>20</td>
+<td>W5500_SCK</td>
+<td>SPI clock</td>
+</tr>
+<tr>
+<td>13</td>
+<td>21</td>
+<td>W5500_MISO</td>
+<td>SPI MISO</td>
+</tr>
+<tr>
+<td>14</td>
+<td>22</td>
+<td>BIAS3</td>
+<td>J5 pin 7, third port bias</td>
+</tr>
+<tr>
+<td>15</td>
+<td>8</td>
+<td>DMX2_TX</td>
+<td>UART2 TX</td>
+</tr>
+<tr>
+<td>16</td>
+<td>9</td>
+<td>DMX1_RX</td>
+<td>UART1 RX</td>
+</tr>
+<tr>
+<td>17</td>
+<td>10</td>
+<td>DMX1_TX</td>
+<td>UART1 TX</td>
+</tr>
+<tr>
+<td>18</td>
+<td>11</td>
+<td>DMX2_RX</td>
+<td>UART2 RX</td>
+</tr>
+<tr>
+<td>19</td>
+<td>13</td>
+<td>USB_DM</td>
+<td>USB D-</td>
+</tr>
+<tr>
+<td>20</td>
+<td>14</td>
+<td>USB_DP</td>
+<td>USB D+</td>
+</tr>
+<tr>
+<td>21</td>
+<td>23</td>
+<td>DIR3</td>
+<td>J5 pin 6, third port direction (10 k pull-down R5)</td>
+</tr>
+<tr>
+<td>38</td>
+<td>31</td>
+<td>EXP1</td>
+<td>J5 pin 9</td>
+</tr>
+<tr>
+<td>39</td>
+<td>32</td>
+<td>DMX1_DIR</td>
+<td>DMX1 driver enable / receiver disable (10 k pull-down)</td>
+</tr>
+<tr>
+<td>40</td>
+<td>33</td>
+<td>DMX2_DIR</td>
+<td>DMX2 driver enable (10 k pull-down)</td>
+</tr>
+<tr>
+<td>41</td>
+<td>34</td>
+<td>EXP2</td>
+<td>J5 pin 10</td>
+</tr>
+<tr>
+<td>42</td>
+<td>35</td>
+<td>EXP3</td>
+<td>J5 pin 11</td>
+</tr>
+<tr>
+<td>43</td>
+<td>37</td>
+<td>UART0_TX</td>
+<td>J7 pin 2 and J5 pin 4</td>
+</tr>
+<tr>
+<td>44</td>
+<td>36</td>
+<td>UART0_RX</td>
+<td>J7 pin 3 and J5 pin 5</td>
+</tr>
+<tr>
+<td>47</td>
+<td>24</td>
+<td>EXP4</td>
+<td>J5 pin 12</td>
+</tr>
+<tr>
+<td>48</td>
+<td>25</td>
+<td>LED_STATUS</td>
+<td>WS2812B status LED data (through 330 ohm)</td>
+</tr>
+<tr>
+<td>EN</td>
+<td>3</td>
+<td>EN</td>
+<td>RESET button, 10 k pull-up, 1 uF to GND</td>
+</tr>
+</tbody>
+</table></div>
+<p>Not connected: GPIO 3, 8, 35, 36, 37, 45, 46 and the flash-reserved GPIO 26-34 on the module. GPIO 35-37 are free on the N8 (no PSRAM) but are not routed anywhere. The strapping pins GPIO0 (BOOT) and EN are the only strapping pins used.</p>
+<h2 id="connectors">Connectors</h2>
+<h3 id="j1-rj45-hr871150c-poe-capable-magjack">J1: RJ45 (HR871150C, PoE-capable magjack)</h3>
+<p>Right-angle through-hole jack with integrated magnetics, link and activity LEDs, and the four PoE centre taps brought out as pins. The jack overhangs the board edge by about 0.5 mm. See <a href="04-ethernet-and-poe.html">docs/04</a>.</p>
+<h3 id="j2-j2o-j3-j3o-dmx-terminals-3-pos-508-mm">J2, J2O, J3, J3O: DMX terminals (3-pos, 5.08 mm)</h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Ref</th>
+<th>Port</th>
+<th>Role</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>J2</td>
+<td>DMX1</td>
+<td>IN</td>
+</tr>
+<tr>
+<td>J2O</td>
+<td>DMX1</td>
+<td>OUT (wired in parallel with J2)</td>
+</tr>
+<tr>
+<td>J3</td>
+<td>DMX2</td>
+<td>IN</td>
+</tr>
+<tr>
+<td>J3O</td>
+<td>DMX2</td>
+<td>OUT (wired in parallel with J3)</td>
+</tr>
+</tbody>
+</table></div>
+<p>Pins left to right (as silkscreened): <strong>B, A, GND</strong>.</p>
+<p>IN and OUT on a port are the same electrical bus on the same transceiver, so a port is either an output or an input for the whole port at a time, and the OUT terminal just provides a second place to attach a cable (daisy chain).</p>
+<h3 id="j2t-j3t-termination-jumpers-1x2-header">J2T, J3T: termination jumpers (1x2 header)</h3>
+<p>Fit a 2.54 mm shunt to connect a 120 ohm terminator across A and B of that port. Fit it only at the <strong>last device</strong> on a DMX line.</p>
+<h3 id="j4-usb-c">J4: USB-C</h3>
+<p>Device (sink) only, USB 2.0. CC1 and CC2 each have a 5.1 k pull-down (R3, R4). The connector is 16-pin (HRO TYPE-C-31-M-12), USB D+ / D- are tied across both rows.</p>
+<h3 id="j5-expansion-header-1x12-254-mm">J5: expansion header (1x12, 2.54 mm)</h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Pin</th>
+<th>Signal</th>
+<th>Note</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>1</td>
+<td>+3V3</td>
+<td></td>
+</tr>
+<tr>
+<td>2</td>
+<td>+5V</td>
+<td>rail after the input diode (about 4.5-4.7 V), not a regulated 5 V</td>
+</tr>
+<tr>
+<td>3</td>
+<td>GND</td>
+<td></td>
+</tr>
+<tr>
+<td>4</td>
+<td>UART0_TX (GPIO43)</td>
+<td>shared with the J7 console</td>
+</tr>
+<tr>
+<td>5</td>
+<td>UART0_RX (GPIO44)</td>
+<td>shared with the J7 console</td>
+</tr>
+<tr>
+<td>6</td>
+<td>DIR3 (GPIO21)</td>
+<td>10 k pull-down on the board</td>
+</tr>
+<tr>
+<td>7</td>
+<td>BIAS3 (GPIO14)</td>
+<td></td>
+</tr>
+<tr>
+<td>8</td>
+<td>LED_P3 (GPIO7)</td>
+<td></td>
+</tr>
+<tr>
+<td>9</td>
+<td>EXP1 (GPIO38)</td>
+<td></td>
+</tr>
+<tr>
+<td>10</td>
+<td>EXP2 (GPIO41)</td>
+<td></td>
+</tr>
+<tr>
+<td>11</td>
+<td>EXP3 (GPIO42)</td>
+<td></td>
+</tr>
+<tr>
+<td>12</td>
+<td>EXP4 (GPIO47)</td>
+<td></td>
+</tr>
+</tbody>
+</table></div>
+<p>The header was designed so a third-port daughterboard (transceiver on UART0, direction, bias, LED) can be attached. <strong>UART0 is also the debug console on J7, so port 3 and the J7 console cannot both be used</strong>; use the USB-C port as the console when a third port is fitted (see <a href="06-usb-programming-debug.html">docs/06</a>).</p>
+<h3 id="j6-5-v-input-1x2-header">J6: 5 V input (1x2 header)</h3>
+<p>Pin 1 <code>5V_EXT</code>, pin 2 <code>GND</code>. Pin 1 is also connected to the PoE module output. See the warning in <a href="02-architecture-and-power.html">docs/02</a>.</p>
+<h3 id="j7-debug-uart0-1x3-header">J7: debug UART0 (1x3 header)</h3>
+<p>Pin 1 GND, pin 2 TX (ESP TX, connect to the adapter's RX), pin 3 RX (ESP RX, connect to the adapter's TX). 3.3 V logic only.</p>
+<h3 id="buttons-and-leds">Buttons and LEDs</h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Ref</th>
+<th>Function</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SW1</td>
+<td>BOOT (GPIO0)</td>
+</tr>
+<tr>
+<td>SW2</td>
+<td>RESET (EN)</td>
+</tr>
+<tr>
+<td>LED1</td>
+<td>WS2812B status (GPIO48)</td>
+</tr>
+<tr>
+<td>D30, D40</td>
+<td>Port 1 and port 2 activity LEDs (green, 0603)</td>
+</tr>
+<tr>
+<td>J1 LEDs</td>
+<td>Link (green) and activity (yellow) in the RJ45 jack</td>
+</tr>
+</tbody>
+</table></div></div>
+    <div class="links"><a class="btn small" href="https://github.com/DefeatedWarrior/ghostlight-node/blob/main/docs/03-pinout-and-connectors.md">View source on GitHub</a></div>
+    <nav class="pn"><a href="02-architecture-and-power.html"><small>← Previous</small>2. Architecture and power tree</a><a class="r" href="04-ethernet-and-poe.html"><small>Next →</small>4. Ethernet and PoE</a></nav>
+  </article>
+</div>
+
+<footer>Open-source hardware and firmware by <a href="https://github.com/DefeatedWarrior">DefeatedWarrior</a>. Documentation pages are rendered from each project's repository.</footer>
+</body>
+</html>

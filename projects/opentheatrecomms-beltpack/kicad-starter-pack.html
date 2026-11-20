@@ -1,0 +1,158 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>OpenTheatreComms beltpack: KiCad starter pack · OpenTheatreComms Beltpack</title>
+<meta name="description" content="OpenTheatreComms beltpack: KiCad starter pack: documentation for OpenTheatreComms Beltpack">
+<link rel="stylesheet" href="../../assets/style.css">
+
+</head>
+<body>
+<header class="site-header"><div class="in">
+  <a class="brand" href="../../index.html"><span class="bulb"></span>DefeatedWarrior</a>
+  <nav>
+    <a href="../../index.html#projects">Projects</a><a href="../../docs.html">Docs</a><a href="https://github.com/DefeatedWarrior">GitHub</a>
+    <form class="search" action="../../search.html" method="get" role="search"><input type="search" name="q" placeholder="Search docs…" aria-label="Search docs"></form>
+  </nav>
+</div></header>
+
+<div class="page">
+  <aside class="toc docs-nav"><a class="back" href="../../index.html#projects">← All projects</a>
+<a class="proj" href="../opentheatrecomms-beltpack.html">OpenTheatreComms Beltpack</a>
+<h4>Design</h4>
+<a href="parts-list.html">Parts list</a>
+<a href="printed-parts.html">Printed parts</a>
+<h4>Repository docs</h4>
+<a href="readme.html">Repository README</a>
+<a class="cur" href="kicad-starter-pack.html">OpenTheatreComms beltpack: KiCad starter pack</a>
+<div class="sub"><a href="#whats-already-in-each-project">What's already in each project</a><a href="#suggested-workflow">Suggested workflow</a><a href="#frames">Frames</a><a href="#height-limits">Height limits</a><a href="#things-the-case-expects">Things the case expects</a><a href="#check-before-layout">Check before layout</a><a href="#also-in-this-pack">Also in this pack</a></div>
+<a href="board-hand-off.html">Beltpack boards: KiCad hand-off</a></aside>
+  <article class="doc">
+    <div class="crumbs"><a href="../../index.html">Home</a> / <a href="../opentheatrecomms-beltpack.html">OpenTheatreComms Beltpack</a> / Repository docs</div>
+    <h1>OpenTheatreComms beltpack: KiCad starter pack</h1>
+    
+    <div class="md"><p>Three ready-to-open KiCad projects, one per board, generated from the CadQuery reference model. They were written with
+KiCad 7 and open in KiCad 7, 8 and 9 (newer versions offer to upgrade the files on first save).</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Folder</th>
+<th>Board</th>
+<th>Size</th>
+<th>Build</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>top_pcb/</code></td>
+<td>Top PCB under the keys</td>
+<td>99.8 × 26.5 mm curved pill</td>
+<td>1.6 mm, 2 layers</td>
+</tr>
+<tr>
+<td><code>main_pcb/</code></td>
+<td>Main PCB behind the front</td>
+<td>87.5 × 64.5 mm stepped</td>
+<td>1.6 mm, 4 layers</td>
+</tr>
+<tr>
+<td><code>pack_lid_pcb/</code></td>
+<td>Battery pack pad board</td>
+<td>24 × 8 mm</td>
+<td>0.8 mm, 2 layers, ENIG</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="whats-already-in-each-project">What's already in each project</h2>
+<ul>
+<li><strong>Edge.Cuts</strong>: the exact outline with true arcs (front edge R427.4 and back edge R402.6 on the top board).</li>
+<li><strong>Mounting holes</strong>: M2 NPTH footprints (<code>H1</code>…) at the positions the case expects. They are fixed by the case, so leave them where they are.</li>
+<li><strong>Keep-outs</strong>: on the main board, a no-copper rule area along the left-hand strip (x &lt; −39.5), where the ESP32-S3's
+  Wi-Fi antenna and 915 MHz antenna B both sit.</li>
+<li><strong>Placement guides</strong>: <code>Place.F</code> (User.1) shows front/top-side parts, <code>Place.B</code> (User.2) shows back/bottom-side parts and <code>Case.Ref</code> (User.3)
+  shows keycaps, dials, button caps, the OLED glass, the battery outline and case bosses. Notes and height limits are on <code>Cmts.User</code>.</li>
+<li><strong>Datum</strong>: the grid origin and the drill/place origin are set to the board datum, so the status bar coordinates match
+  <code>placement.csv</code> (flip the sign of Y: KiCad's Y points down).</li>
+<li><strong>3D</strong>: a locked, board-only footprint <code>REF**</code> carries <code>3d/enclosure_ref.step</code>, so <em>View → 3D Viewer</em> shows the case,
+  dials, keycaps, XLR and battery pack around the board. Keep the <code>3d/</code> folder next to the project folders.</li>
+<li><strong>Schematic</strong>: an empty sheet with the title block filled in.</li>
+</ul>
+<h2 id="suggested-workflow">Suggested workflow</h2>
+<ol>
+<li>Draw the schematic, assign footprints, then <em>Update PCB from Schematic</em>.</li>
+<li>Fill in the <code>ref</code> column of the project's <code>placement_map.csv</code> with your references (U1, J3, SW2…). Add <code>rot</code> in degrees if you want to set
+   rotations too.</li>
+<li>In the PCB editor open <em>Tools → Scripting Console</em> and run <code>exec(open(r"&lt;path&gt;/place_parts.py").read())</code>. Every listed footprint jumps to its
+   position and side. Positions are part centres; footprints anchored on pin 1 (the PEC12R, for example) need a small nudge.</li>
+<li>Route, then check the fit in the 3D viewer against the enclosure.</li>
+</ol>
+<h2 id="frames">Frames</h2>
+<ul>
+<li><strong>Top PCB</strong>: viewed from above, F.Cu = top side. Origin at the board centre (15 mm behind the case front); +X right, +Y toward the hip edge.
+  Encoders at (±37.5, +1.7) on B.Cu, shafts pointing down into the dial hubs.</li>
+<li><strong>Main PCB</strong>: viewed from the front, F.Cu = front face. Origin at the case centre; +Y up. The bottom edge is at Y = −36.0.</li>
+<li><strong>Pack pad board</strong>: viewed from the front, same frame as the main PCB.</li>
+</ul>
+<h2 id="height-limits">Height limits</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Board</th>
+<th>Side</th>
+<th>Limit</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Top</td>
+<td>F (top)</td>
+<td>3.0 mm; 2.5 under keycap flanges (the PTS815 itself); 1.4 under the OLED glass (it sits on 1.5 mm foam)</td>
+</tr>
+<tr>
+<td>Top</td>
+<td>B (bottom)</td>
+<td>Encoders 6.5 mm; nothing else inside R17.4 of each dial axis; about 4 mm elsewhere</td>
+</tr>
+<tr>
+<td>Main</td>
+<td>F (front)</td>
+<td>5.0 mm; 4.0 mm behind the button recess (|x| &lt; 29, 7.7 &lt; y &lt; 27.1)</td>
+</tr>
+<tr>
+<td>Main</td>
+<td>B (back)</td>
+<td>3.7 mm over the battery pack (x −13.8…39.8, y −31.3…15.3); about 15 mm elsewhere</td>
+</tr>
+</tbody>
+</table></div>
+<h2 id="things-the-case-expects">Things the case expects</h2>
+<ul>
+<li>Bottom edge, main PCB F side: USB4105 centred x 9.0 with the mouth 0.8 past the edge; PJ-320D at x 22.0 with the nose 2.1 past;
+  side tact switch at x −3.0 with the actuator 0.4 past; 3 mm LED at x 32.0, axis 2.0 off the board, bent 90°.</li>
+<li>Front buttons: PTS815 at (−18, 17.4), (0, 17.4), (18, 17.4) on the main PCB F side.</li>
+<li>Board link: 10-way JST SH. BM10B (top entry) on the top board B side at (−10, −1.35); SM10B (side entry) on the main board B side at the
+  tab top, x 8, mouth pointing up. Use a 50 mm cable; it folds behind the tab.</li>
+<li>Radio, with switched antenna diversity: LR2021 ANT_LF → unpopulated pi match → pSemi PE4259 SPDT at (25.8, 4.0) → U.FL A at (31, 10.5)
+  and U.FL B at (24.5, 10.5), all on the main board B side. Put 100 pF DC-block footprints on the switch ports (fit or bridge per the
+  datasheet) and drive CTRL from an ESP32 GPIO. Antenna A sits inside the right end, about 8 mm past the board edge; antenna B sits inside
+  the left end, 3 mm past the edge, which is why that strip has no copper.</li>
+<li>Pogo pins: three Mill-Max 0906 at (6/12/18, −15), B side, through-hole; they compress 0.8 mm onto the pack pads.</li>
+</ul>
+<h2 id="check-before-layout">Check before layout</h2>
+<p>Typical sizes not yet confirmed against a drawing: PEC12R body height (6.5), the XLR D-flange (31 × 26 × 2) and depth (21),
+the USB4105 body, the PTS815 height variant, the side tact switch, the JST SH bodies, and where your OLED panel's active area sits on its glass.</p>
+<h2 id="also-in-this-pack">Also in this pack</h2>
+<ul>
+<li><code>dxf/</code>: the outlines (<code>*_edge_cuts.dxf</code>) and the full guide drawings, if you prefer to import graphics yourself.</li>
+<li><code>drawings/</code>: dimensioned drawings of each board and two sections through the case.</li>
+<li><code>placement.csv</code>: every part centre, envelope and height, plus the holes.</li>
+</ul></div>
+    <div class="links"><a class="btn small" href="https://github.com/DefeatedWarrior/OpenTheatreComms-Beltpack/blob/main/kicad/README.md">View source on GitHub</a></div>
+    <nav class="pn"><a href="readme.html"><small>← Previous</small>Repository README</a><a class="r" href="board-hand-off.html"><small>Next →</small>Beltpack boards: KiCad hand-off</a></nav>
+  </article>
+</div>
+
+<footer>Open-source hardware and firmware by <a href="https://github.com/DefeatedWarrior">DefeatedWarrior</a>. Documentation pages are rendered from each project's repository.</footer>
+</body>
+</html>

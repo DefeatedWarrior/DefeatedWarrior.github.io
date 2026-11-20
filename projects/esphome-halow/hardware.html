@@ -1,0 +1,223 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Hardware · esphome-halow</title>
+<meta name="description" content="Hardware: documentation for esphome-halow">
+<link rel="stylesheet" href="../../assets/style.css">
+
+</head>
+<body>
+<header class="site-header"><div class="in">
+  <a class="brand" href="../../index.html"><span class="bulb"></span>DefeatedWarrior</a>
+  <nav>
+    <a href="../../index.html#projects">Projects</a><a href="../../docs.html">Docs</a><a href="https://github.com/DefeatedWarrior">GitHub</a>
+    <form class="search" action="../../search.html" method="get" role="search"><input type="search" name="q" placeholder="Search docs…" aria-label="Search docs"></form>
+  </nav>
+</div></header>
+
+<div class="page">
+  <aside class="toc docs-nav"><a class="back" href="../../index.html#projects">← All projects</a>
+<a class="proj" href="../esphome-halow.html">esphome-halow</a>
+<h4>Guides</h4>
+<a href="usage-guide.html">Usage guide</a>
+<a class="cur" href="hardware.html">Hardware</a>
+<div class="sub"><a href="#host-seeed-xiao-esp32-s3">Host: Seeed XIAO ESP32-S3</a><a href="#halow-module-seeed-wio-wm6180-for-xiao">HaLow module: Seeed Wio-WM6180 for XIAO</a><a href="#access-point-gl-inet-halowlink-2">Access point: GL-iNet HaLowLink 2</a><a href="#failure-signatures">Failure signatures</a><a href="#investigation-log-power-on-reset-at-connecting-2026-10-1213">Investigation log: power-on reset at "Connecting" (2026-10-12/13)</a></div>
+<a href="development.html">Development</a>
+<h4>Internals</h4>
+<a href="architecture.html">Architecture</a>
+<a href="esphome-compatibility.html">ESPHome compatibility</a>
+<a href="halow-notes.html">Engineering Notes - ESPHome Wi-Fi HaLow Component</a>
+<a href="patches.html">Patches against upstream</a></aside>
+  <article class="doc">
+    <div class="crumbs"><a href="../../index.html">Home</a> / <a href="../esphome-halow.html">esphome-halow</a> / Guides</div>
+    <h1>Hardware</h1>
+    
+    <div class="md"><h2 id="host-seeed-xiao-esp32-s3">Host: Seeed XIAO ESP32-S3</h2>
+<ul>
+<li>ESP32-S3 rev 0.2, 8 MB flash, 8 MB PSRAM.</li>
+<li>USB is the chip's built-in USB-Serial-JTAG (VID <code>0x303a</code>, PID <code>0x1001</code>); macOS shows it as <code>/dev/cu.usbmodem*</code>, Linux as <code>/dev/ttyACM*</code>. The port disappears whenever the chip resets fully, and the device name can change between USB ports or hubs.</li>
+<li><code>esp32: variant: esp32s3</code> without a <code>board:</code> builds for 4 MB flash; <code>board: seeed_xiao_esp32s3</code> uses all 8 MB. The partition table differs, so switching between them needs a USB flash, not OTA.</li>
+</ul>
+<h2 id="halow-module-seeed-wio-wm6180-for-xiao">HaLow module: Seeed Wio-WM6180 for XIAO</h2>
+<p>MM6108 SoC on an MF16858 module. Plugs onto the XIAO headers.</p>
+<h3 id="pins">Pins</h3>
+<p>Verified against Seeed's SDK (<code>Seeed-Studio/mm-iot-esp32</code>, <code>framework/mm_shims/Kconfig</code>) and identical in Morse's upstream HAL.</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Function</th>
+<th>GPIO</th>
+<th>XIAO label</th>
+<th>Direction</th>
+<th>How the SDK uses it</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SPI SCK</td>
+<td>7</td>
+<td>D8</td>
+<td>out</td>
+<td>SPI2 at 40 MHz</td>
+</tr>
+<tr>
+<td>SPI MISO</td>
+<td>8</td>
+<td>D9</td>
+<td>in</td>
+<td></td>
+</tr>
+<tr>
+<td>SPI MOSI</td>
+<td>9</td>
+<td>D10</td>
+<td>out</td>
+<td></td>
+</tr>
+<tr>
+<td>SPI CS</td>
+<td>4</td>
+<td>D3</td>
+<td>out</td>
+<td>manual chip select</td>
+</tr>
+<tr>
+<td>SPI IRQ</td>
+<td>3</td>
+<td>D2</td>
+<td>in</td>
+<td>data-ready, LOW_LEVEL interrupt (GPIO3 is also an S3 strapping pin)</td>
+</tr>
+<tr>
+<td>RESET_N</td>
+<td>1</td>
+<td>D0</td>
+<td>out</td>
+<td>held low until <code>mmhal_wlan_init()</code>, pulsed for hard reset</td>
+</tr>
+<tr>
+<td>WAKE</td>
+<td>2</td>
+<td>D1</td>
+<td>out</td>
+<td>asserted to wake the chip</td>
+</tr>
+<tr>
+<td>BUSY</td>
+<td>5</td>
+<td>D4</td>
+<td>in, pull-down</td>
+<td>rising-edge interrupt; unreliable in firmware 1.17.6, hence power save off</td>
+</tr>
+</tbody>
+</table></div>
+<p>The SDK's hardware layer (<code>mm_shims</code>) has no other pins: no RF switch, power enable or antenna select. The RF front end is controlled by the MM6108 itself according to the BCF. Seeed's HAL and Morse's upstream HAL were compared line by line in October 2026 and behave identically (same pins, 40 MHz SPI, reset timing, interrupt setup, and the external-crystal hook defaulting to "not required").</p>
+<h3 id="power">Power</h3>
+<p>From Seeed's wiki: the module needs <strong>two supplies</strong>. <strong>3.3 V</strong> powers the digital rails; <strong>5 V</strong> powers the RF front end (TX power amplifier) on a separate rail. On a XIAO, the 5 V pin is the USB supply itself (VBUS). With only 3.3 V the module loads firmware and receives, but can't transmit at rated power.</p>
+<p>The RF section is powered up by <code>mmwlan_sta_enable()</code> ("power on the transceiver then initiate connection"), i.e. at the <code>Connecting to '...'</code> log line, not during <code>mmwlan_boot()</code>.</p>
+<h3 id="firmware-and-board-config">Firmware and board config</h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>File</th>
+<th>Version / details</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>mm6108.mbin</code></td>
+<td>1.17.6 (~400 KB), from the pinned MM-IoT-SDK</td>
+</tr>
+<tr>
+<td><code>bcf_mf16858.mbin</code></td>
+<td><code>{"module": "mm6108-mf16858", "status": "Regulatory Certified", "regions_certified": {"US": "certified", "CA": "certified", "AU": "compliant"}, "updated": "2025-10-28"}</code></td>
+</tr>
+</tbody>
+</table></div>
+<p>Seeed's own SDK defaults to <code>bcf_mf16858_us</code> (an older, smaller BCF with its own older firmware). The upstream one above is newer and covers AU. Firmware and BCF must come from the same SDK version.</p>
+<h2 id="access-point-gl-inet-halowlink-2">Access point: GL-iNet HaLowLink 2</h2>
+<ul>
+<li>MM8108-based, WPA3-SAE. Must bridge HaLow to the LAN for Home Assistant to reach devices: LAN cable in the <strong>WAN</strong> port, the wizard's "HaLow devices get IP on your existing router's network", and masquerade off (<code>uci set firewall.wlan.masq=0</code>). See the README's Access Point Setup.</li>
+<li>The device's <code>country_code</code> must match the AP's region. Supported by the pinned SDK: AU, CA, EU, GB, IN, JP, KR, NZ, US. A US device does not find an AU AP (different channelisation), and just times out.</li>
+</ul>
+<h2 id="failure-signatures">Failure signatures</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Symptom in the serial log</th>
+<th>Cause</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>fatal error: esp_netif_lwip_internal.h</code> (build)</td>
+<td>PlatformIO-only include path</td>
+<td>Fixed (PATCHES.md #1)</td>
+</tr>
+<tr>
+<td><code>undefined reference to mbedtls_cipher_cmac_*</code> (link)</td>
+<td>ESPHome 2026.x disables CMAC</td>
+<td>Fixed (#2)</td>
+</tr>
+<tr>
+<td><code>Interrupt wdt timeout on CPU1</code> in <code>gpio_intr_service</code> right after <code>MM6108 hardware reset complete</code>, boot loop</td>
+<td>IRQ pin left armed across a soft reset</td>
+<td>Fixed (#3)</td>
+</tr>
+<tr>
+<td><code>ESP_ERROR_CHECK failed: ESP_ERR_INVALID_ARG</code> in <code>esp_vfs_lwip_sockets_register</code> after <code>Using DHCP</code></td>
+<td>lwIP initialised twice</td>
+<td>Fixed (#4)</td>
+</tr>
+<tr>
+<td><code>Network down; disconnect</code> from the API, reboot every 15 min</td>
+<td><code>network::is_connected()</code> doesn't know HaLow</td>
+<td>Fixed (#5)</td>
+</tr>
+<tr>
+<td><code>Connect timeout</code> with no <code>STA state: CONNECTING</code></td>
+<td>AP not found: wrong <code>country_code</code>, AP off or out of range</td>
+<td>Config</td>
+</tr>
+<tr>
+<td>Reboot every 15 min, no API errors</td>
+<td>Home Assistant can't reach the device (<code>api: reboot_timeout</code>)</td>
+<td>Network/AP setup</td>
+</tr>
+<tr>
+<td>Log stops right after <code>Connecting to '...'</code>, USB port drops, next boot's reset reason is <strong>1 (power-on)</strong>, no crash record</td>
+<td>Supply collapses when the RF front end powers up</td>
+<td>Hardware, see below</td>
+</tr>
+</tbody>
+</table></div>
+<p>Reset reasons (<code>esp_reset_reason()</code>): 1 power-on (also the EN pin), 3 software, 4 panic, 5 interrupt WDT, 6 task WDT, 7 other WDT, 9 brownout, 11 USB (esptool/serial reset). A panic or software restart does <strong>not</strong> drop the USB serial port; a power-on reset does.</p>
+<h2 id="investigation-log-power-on-reset-at-connecting-2026-10-1213">Investigation log: power-on reset at "Connecting" (2026-10-12/13)</h2>
+<p>Board: XIAO ESP32-S3 + Wio-WM6180, HaLowLink 2 AP, AU region.</p>
+<ul>
+<li>23:42: firmware with fixes #1-#4, <code>country_code: US</code>: scanned and retried for over 60 s with no reset (AP not found).</li>
+<li>23:45: same with <code>AU</code>: <strong>connected</strong>, DHCP lease, mDNS up, stable past 60 s.</li>
+<li>From ~23:55 every boot resets about 0.4-1.5 s after <code>Connecting to '&lt;ssid&gt;' (SAE)...</code>. The USB device name changed between these (<code>usbmodem1101</code> → <code>usbmodem101</code>).</li>
+<li>Recreated the exact 23:45 build (same sequence, same code): still resets. So not the build.</li>
+<li>Delayed connect by 15 s with a heartbeat: stable for 15 s with the radio booted, resets the instant <code>sta_enable()</code> runs. Reset reason 1 (power-on), no panic, no assert output.</li>
+<li>TX power capped at 10 dBm: still resets. US country code (AP not reachable): still resets. Back on the <code>usbmodem1101</code> port: still resets.</li>
+<li>No persistent state exists that could carry over between flashes (only ESPHome's NVS preferences; the Morse config store isn't linked).</li>
+<li>Morse SDK's internal assert path calls <code>esp_restart()</code>, which would give reason 3 and keep the USB port, so ruled out.</li>
+<li>Seeed's HAL compared with upstream: identical. Seeed's wiki then showed the 5 V PA rail comes straight from USB, which explains a power-on reset at RF power-up regardless of TX power.</li>
+</ul>
+<p><strong>Conclusion:</strong> a power problem on the 5 V path feeding the module's TX amplifier.</p>
+<ul>
+<li>2026-10-13 17:24: <strong>an electrolytic capacitor added across the 5 V rail stopped the power-on resets.</strong> The board now stays up after <code>Connecting</code> (20+ s observed); the only resets in the log were USB-requested (<code>rst:0x15</code>, "Reset Reason: USB peripheral") from the web serial page. Still open: no <code>STA state: CONNECTING</code> appeared within 20 s, so association isn't confirmed yet. Needs an uninterrupted log of at least 2 minutes (the first connect timeout is at 60 s).</li>
+<li>2026-10-13 17:27-17:33: no power resets. The board didn't find the AP for 6 minutes (first attempt plus 5 timer reconnects, 75 s apart, no crash). 17:34: after a USB reset it <strong>connected in 2 s</strong>, got a DHCP lease and started mDNS, and stayed up. The 17:24 and 17:27 boots were also fresh restarts and failed, so a restart alone isn't what fixed it; most likely the AP wasn't answering until then (possibly holding off the MAC after the earlier reset loop). Watch for a repeat.</li>
+</ul></div>
+    <div class="links"><a class="btn small" href="https://github.com/DefeatedWarrior/esphome-halow/blob/main/docs/HARDWARE.md">View source on GitHub</a></div>
+    <nav class="pn"><a href="usage-guide.html"><small>← Previous</small>Usage guide</a><a class="r" href="development.html"><small>Next →</small>Development</a></nav>
+  </article>
+</div>
+
+<footer>Open-source hardware and firmware by <a href="https://github.com/DefeatedWarrior">DefeatedWarrior</a>. Documentation pages are rendered from each project's repository.</footer>
+</body>
+</html>

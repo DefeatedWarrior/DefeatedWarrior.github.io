@@ -1,0 +1,948 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Engineering Notes - ESPHome Wi-Fi HaLow Component · esphome-halow</title>
+<meta name="description" content="Engineering Notes - ESPHome Wi-Fi HaLow Component: documentation for esphome-halow">
+<link rel="stylesheet" href="../../assets/style.css">
+
+</head>
+<body>
+<header class="site-header"><div class="in">
+  <a class="brand" href="../../index.html"><span class="bulb"></span>DefeatedWarrior</a>
+  <nav>
+    <a href="../../index.html#projects">Projects</a><a href="../../docs.html">Docs</a><a href="https://github.com/DefeatedWarrior">GitHub</a>
+    <form class="search" action="../../search.html" method="get" role="search"><input type="search" name="q" placeholder="Search docs…" aria-label="Search docs"></form>
+  </nav>
+</div></header>
+
+<div class="page">
+  <aside class="toc docs-nav"><a class="back" href="../../index.html#projects">← All projects</a>
+<a class="proj" href="../esphome-halow.html">esphome-halow</a>
+<h4>Guides</h4>
+<a href="usage-guide.html">Usage guide</a>
+<a href="hardware.html">Hardware</a>
+<a href="development.html">Development</a>
+<h4>Internals</h4>
+<a href="architecture.html">Architecture</a>
+<a href="esphome-compatibility.html">ESPHome compatibility</a>
+<a class="cur" href="halow-notes.html">Engineering Notes - ESPHome Wi-Fi HaLow Component</a>
+<div class="sub"><a href="#overview">Overview</a><a href="#hardware-stack">Hardware Stack</a><a href="#pin-mapping-esp32-s3-to-mm6108">Pin Mapping: ESP32-S3 to MM6108</a><a href="#firmware-and-board-configuration">Firmware and Board Configuration</a><a href="#sdk-history">SDK History</a><a href="#mm-iot-sdk-architecture">MM-IoT-SDK Architecture</a><a href="#available-metrics-api">Available Metrics API</a><a href="#mdns-integration-solved">mDNS Integration (solved)</a><a href="#esphome-integration-architecture">ESPHome Integration Architecture</a><a href="#power-save-and-battery-operation">Power Save and Battery Operation</a><a href="#halow-vs-lora-comparison">HaLow vs LoRa Comparison</a><a href="#halowlink-2-ap-configuration">HaLowLink 2 AP Configuration</a><a href="#verified-test-results">Verified Test Results</a><a href="#development-environment">Development Environment</a></div>
+<a href="patches.html">Patches against upstream</a></aside>
+  <article class="doc">
+    <div class="crumbs"><a href="../../index.html">Home</a> / <a href="../esphome-halow.html">esphome-halow</a> / Internals</div>
+    <h1>Engineering Notes - ESPHome Wi-Fi HaLow Component</h1>
+    
+    <div class="md"><blockquote>
+<p><strong>Historical notebook.</strong> These are the original author's bring-up notes, lightly updated by the fork. They're the best record of <em>why</em> the SDK is driven the way it is (what was tried and failed), but some details are out of date, especially about the Seeed SDK fork and the PlatformIO toolchain. For how the component works today see <a href="architecture.html">ARCHITECTURE.md</a>; for ESPHome version issues see <a href="esphome-compatibility.html">ESPHOME_COMPAT.md</a>; for the hardware see <a href="hardware.html">HARDWARE.md</a>.</p>
+</blockquote>
+<h2 id="overview">Overview</h2>
+<p>IEEE 802.11ah (Wi-Fi HaLow) operates in sub-1 GHz spectrum (902-928 MHz in North America)
+for long-range, low-power IoT connectivity. This project wraps the Morse Micro MM-IoT-SDK
+into an ESPHome external component, providing a <code>halow:</code> config block analogous to <code>wifi:</code>
+or <code>ethernet:</code> (W5500).</p>
+<h2 id="hardware-stack">Hardware Stack</h2>
+<h3 id="morse-micro-mm6108-soc">Morse Micro MM6108 SoC</h3>
+<ul>
+<li>Single-chip 802.11ah solution with integrated MAC/PHY/radio</li>
+<li>Sub-1 GHz: 902-928 MHz (US/AU), 863-868 MHz (EU), 916.5-927.5 MHz (JP)</li>
+<li>Channel widths: 1, 2, 4, 8 MHz</li>
+<li>Max data rate: 32.5 Mbps (8 MHz, MCS10)</li>
+<li>Typical range: 100m-1km (depending on environment and data rate)</li>
+<li>Interface to host: SDIO-over-SPI (up to 50 MHz, typically 40 MHz)</li>
+<li>No persistent firmware -- host loads FW + BCF over SPI at every boot</li>
+<li>Security: WPA3-SAE (primary), OWE, Open</li>
+<li>Chip ID observed: 0x306</li>
+</ul>
+<h3 id="seeed-xiao-halow-hat-wio-wm6180">Seeed XIAO HaLow Hat (WIO-WM6180)</h3>
+<ul>
+<li>Contains Quectel FGH100M-H module (MM6108 inside)</li>
+<li>Designed to stack on XIAO ESP32-S3</li>
+<li>3.3V operation</li>
+<li>SMA antenna connector (external antenna)</li>
+<li>Pin mapping defined in Seeed's mm-iot-esp32 Kconfig fork</li>
+</ul>
+<h3 id="seeed-xiao-esp32-s3">Seeed XIAO ESP32-S3</h3>
+<ul>
+<li>ESP32-S3 (QFN56), revision v0.2</li>
+<li>Dual-core Xtensa LX7 @ 240 MHz</li>
+<li>8 MB PSRAM, 8 MB flash (GD chip)</li>
+<li>USB-C with native USB JTAG/serial debug (VID:PID 303a:1001)</li>
+<li>MAC: d8:3b:da:45:55:08</li>
+</ul>
+<h3 id="gl-inet-halowlink-2-test-ap">GL-iNet HaLowLink 2 (Test AP)</h3>
+<ul>
+<li>Model: MM-HL2-EXT (HW v0.1)</li>
+<li>MAC: 50:2E:91:D2:C9:E4</li>
+<li>MM8108-based (802.11ah AP + 2.4 GHz Wi-Fi bridge)</li>
+<li>OpenWrt 23.05</li>
+<li>Default IP: 192.168.12.1</li>
+<li>DHCP range: 192.168.12.x</li>
+<li>Security: WPA3-SAE</li>
+<li>Management: root / (see device label) at 192.168.12.1</li>
+</ul>
+<h2 id="pin-mapping-esp32-s3-to-mm6108">Pin Mapping: ESP32-S3 to MM6108</h2>
+<p><strong>Source</strong>: <a href="https://github.com/Seeed-Studio/mm-iot-esp32/blob/main/framework/mm_shims/Kconfig" target="_blank" rel="noopener">Seeed mm-iot-esp32 Kconfig</a></p>
+<p>These are the Kconfig <em>defaults</em> in the Seeed fork, which differ from the upstream
+Morse Micro defaults. Verified working with XIAO ESP32-S3 + XIAO HaLow Hat.</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Function</th>
+<th>ESP32-S3 GPIO</th>
+<th>XIAO Silk</th>
+<th>Kconfig Key</th>
+<th>Notes</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>SPI SCK</td>
+<td>GPIO 7</td>
+<td>D8</td>
+<td>MM_SPI_SCK</td>
+<td>SPI clock</td>
+</tr>
+<tr>
+<td>SPI MISO</td>
+<td>GPIO 8</td>
+<td>D9</td>
+<td>MM_SPI_MISO</td>
+<td>Master In Slave Out</td>
+</tr>
+<tr>
+<td>SPI MOSI</td>
+<td>GPIO 9</td>
+<td>D10</td>
+<td>MM_SPI_MOSI</td>
+<td>Master Out Slave In</td>
+</tr>
+<tr>
+<td>SPI CS</td>
+<td>GPIO 4</td>
+<td>D4</td>
+<td>MM_SPI_CS</td>
+<td>Chip select (active low)</td>
+</tr>
+<tr>
+<td>SPI IRQ</td>
+<td>GPIO 3</td>
+<td>D3</td>
+<td>MM_SPI_IRQ</td>
+<td>Out-of-band data-ready interrupt</td>
+</tr>
+<tr>
+<td>RESET_N</td>
+<td>GPIO 1</td>
+<td>D1</td>
+<td>MM_RESET_N</td>
+<td>Module reset (active low)</td>
+</tr>
+<tr>
+<td>WAKE</td>
+<td>GPIO 2</td>
+<td>D2</td>
+<td>MM_WAKE</td>
+<td>Wake signal</td>
+</tr>
+<tr>
+<td>BUSY</td>
+<td>GPIO 5</td>
+<td>D5</td>
+<td>MM_BUSY</td>
+<td>Rising edge interrupt</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Upstream (Morse Micro) defaults are different</strong>: SCK=12, MOSI=11, MISO=13, CS=10, IRQ=5,
+RESET=3, WAKE=8, BUSY=9. These are for the Morse Micro EKH08 dev board, not the XIAO hat.</p>
+<h2 id="firmware-and-board-configuration">Firmware and Board Configuration</h2>
+<h3 id="binary-file-formats">Binary File Formats</h3>
+<p>The MM-IoT-SDK uses <code>.mbin</code> files (a proprietary packed format). The <code>morse-firmware</code> repo
+at https://github.com/MorseMicro/morse-firmware uses <code>.bin</code> files (ELF RISC-V format).
+To use <code>.bin</code> BCF files from morse-firmware with the MM-IoT-SDK, you must convert them:</p>
+<pre><code class="language-bash">python3 framework/tools/buildsystem/convert-bin-to-mbin.py INPUT.bin -o OUTPUT.mbin
+</code></pre>
+<h3 id="bcf-files-board-configuration-files">BCF Files (Board Configuration Files)</h3>
+<p>BCFs contain hardware-specific and regulatory configuration. Using the wrong BCF
+will either crash (<code>FW manifest pointer not set</code>) or silently fail to connect
+(radio configured for wrong frequency band).</p>
+<p><strong>Seeed SDK (<code>~/esp/mm-iot-esp32/framework/morsefirmware/</code>):</strong>
+| File                    | Module          | Region | Status    |
+|-------------------------|-----------------|--------|-----------|
+| <code>bcf_mf16858_us.mbin</code>  | FGH100M-H       | US     | <strong>Working</strong> |
+| <code>bcf_mf08651_us.mbin</code>  | MF08651          | US     | Untested  |
+| <code>bcf_mf08551.mbin</code>     | MF08551          | Multi  | Untested  |
+| <code>bcf_mf08251.mbin</code>     | MF08251          | Multi  | Untested  |
+| <code>bcf_mf03120.mbin</code>     | MF03120          | Multi  | Untested  |</p>
+<p><strong>Upstream SDK (<code>~/esp/mm-iot-esp32-upstream/framework/morsefirmware/mm6108/bcfs/</code>):</strong>
+| File                    | Module          | Region | Status    |
+|-------------------------|-----------------|--------|-----------|
+| <code>bcf_mf16858.mbin</code>     | FGH100M-H       | <strong>Not US</strong> | Loads FW but cannot connect |
+| <code>bcf_mf08651_us.mbin</code>  | MF08651          | US     | Not tested with FGH100M-H |
+| <code>bcf_mf08651_jp.mbin</code>  | MF08651          | JP     | Untested  |</p>
+<p><strong>Quectel BCFs (from <code>morse-firmware</code> repo, need <code>.bin</code> -&gt; <code>.mbin</code> conversion):</strong>
+| File                     | Module          | Notes |
+|--------------------------|-----------------|-------|
+| <code>bcf_fgh100mhaamd.bin</code>  | FGH100M-<strong>H</strong>   | Correct module match; converts but does not connect (may lack US regulatory) |
+| <code>bcf_fgh100maamd.bin</code>   | FGH100M-A       | Different module variant |
+| <code>bcf_fgh100mabmd.bin</code>   | FGH100M-AB      | Different module variant |
+| <code>bcf_fgh100mjaamd.bin</code>  | FGH100M-J       | Different module variant |</p>
+<h3 id="firmware-files">Firmware Files</h3>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>File</th>
+<th>SDK Version</th>
+<th>FW Version</th>
+<th>morselib</th>
+<th>Status</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><code>mm6108.mbin</code> (upstream)</td>
+<td>v2.10.4-esp32</td>
+<td>1.17.6</td>
+<td>2.10.4-esp32</td>
+<td><strong>Working</strong> (with sub-bands disabled)</td>
+</tr>
+<tr>
+<td><code>mm6108.mbin</code> (Seeed)</td>
+<td>v2.6.4-esp32</td>
+<td>1.13.1</td>
+<td>2.6.4-esp32</td>
+<td>Working (legacy)</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Critical</strong>: Firmware and BCF must be from the same SDK version. Mixing causes
+<code>FW manifest pointer not set</code> crash.</p>
+<h3 id="how-firmware-loading-works">How Firmware Loading Works</h3>
+<ol>
+<li>ESP32 holds MM6108 in reset (RESET_N low)</li>
+<li>ESP32 releases reset, asserts WAKE</li>
+<li>ESP32 initializes SPI bus at 400 kHz, sends init clocks</li>
+<li>SDIO-over-SPI initialization (CMD0, CMD5, CMD52)</li>
+<li>MM-IoT-SDK loads <code>mm6108.mbin</code> via multi-byte SPI writes</li>
+<li>MM-IoT-SDK loads BCF via multi-byte SPI writes</li>
+<li>MM6108 boots its internal firmware, SPI clock increases to 40 MHz</li>
+<li>Total boot time: ~700ms (to mmwlan_sta_enable call)</li>
+<li>WPA3-SAE connection completes ~8-10s after boot</li>
+</ol>
+<h2 id="sdk-history">SDK History</h2>
+<p>The component originally used the Seeed fork (v2.6.4) which required two patches for
+ESP-IDF 5.5.2 compatibility. The upstream MM-IoT-SDK v2.10.4 was found to work after
+two key fixes:
+1. <code>periph_module_reset(PERIPH_SPI2_MODULE)</code> — fixes SPI reinit after OTA/soft reboot
+2. <code>mmwlan_set_subbands_enabled(false)</code> — forces 8 MHz operation (upstream defaults to
+   sub-band support which drops to 2 MHz)</p>
+<p>The component now uses the <strong>upstream SDK directly</strong> with no patches needed.</p>
+<h2 id="mm-iot-sdk-architecture">MM-IoT-SDK Architecture</h2>
+<h3 id="repository-structure-seeed-fork">Repository Structure (Seeed fork)</h3>
+<pre><code>mm-iot-esp32/
+├── framework/
+│   ├── morselib/          # Prebuilt binary library
+│   │   ├── include/       # Public API headers (mmwlan.h, mmipal.h, etc.)
+│   │   └── lib/
+│   │       └── esp32-xtensa-lx7/
+│   │           └── libmorse_nocrypto.a   # ~2.5MB static lib
+│   ├── mm_shims/          # ESP-IDF HAL: SPI, GPIO, FreeRTOS glue
+│   │   ├── Kconfig        # Pin definitions (THIS IS WHERE PINS ARE SET)
+│   │   ├── mmhal.c        # SPI bus init, firmware loading (Seeed name)
+│   │   ├── wlan_hal.c     # WLAN HAL bindings (Seeed name)
+│   │   ├── mmhal_wlan_binaries.c  # References embedded .mbin.o objects
+│   │   ├── mm6108.mbin.o          # Pre-built firmware object (xtensa ELF)
+│   │   └── bcf_mf16858_us.mbin.o  # Pre-built BCF object (xtensa ELF)
+│   ├── src/
+│   │   ├── mmipal/        # IP abstraction (LWIP netif, DHCP)
+│   │   ├── mmiperf/       # iperf implementation
+│   │   ├── mmpktmem/      # Packet memory manager
+│   │   └── mmutils/       # OS abstraction, config store
+│   ├── morsefirmware/     # .mbin firmware files (source for the .o objects)
+│   └── tools/buildsystem/ # convert-bin-to-mbin.py and other tools
+├── examples/
+│   ├── scan/              # Network scan
+│   ├── sta_connect/       # Basic STA connection
+│   ├── iperf/             # Full LWIP + DHCP + iperf
+│   └── porting_assistant/ # Hardware verification tool
+└── documentation.html     # Full API docs
+</code></pre>
+<h3 id="key-api-headers">Key API Headers</h3>
+<ul>
+<li><code>mmwlan.h</code> -- WLAN control (boot, connect, scan, TX/RX)</li>
+<li><code>mmipal.h</code> -- IP layer (init, DHCP, get_ip_config, get_ip6_config)</li>
+<li><code>mmhal.h</code>  -- Hardware abstraction (init, SPI, GPIO)</li>
+<li><code>mmosal.h</code> -- OS abstraction (tasks, semaphores, timers)</li>
+<li><code>mmwlan_regdb.def</code> -- Regulatory database (Seeed: inline header, upstream: separate component)</li>
+</ul>
+<h3 id="esp-idf-component-dependencies">ESP-IDF Component Dependencies</h3>
+<p>When building as an ESP-IDF component, the SDK requires:
+- <code>driver</code> (SPI, GPIO) — or <code>esp_driver_spi</code>/<code>esp_driver_gpio</code> on IDF 5.3+
+- <code>freertos</code>
+- <code>lwip</code> (with <code>LWIP_NETIF_STATUS_CALLBACK=1</code> and <code>LWIP_NETIF_LINK_CALLBACK=1</code>)
+- <code>mbedtls</code> (for crypto_mbedtls_mm.c shim)
+- <code>spi_flash</code>, <code>app_update</code>, <code>log</code></p>
+<h3 id="required-sdkconfig-settings">Required sdkconfig Settings</h3>
+<pre><code>CONFIG_FREERTOS_HZ=1000
+CONFIG_FREERTOS_TIMER_TASK_PRIORITY=10    # Higher than MMOSAL_TASK_PRI_HIGH
+CONFIG_IDF_TARGET=&quot;esp32s3&quot;
+CONFIG_ESP32S3_INSTRUCTION_CACHE_32KB=y
+CONFIG_MBEDTLS_NIST_KW_C=y
+CONFIG_LWIP_NETIF_STATUS_CALLBACK=y       # Required by mmipal for DHCP callbacks
+# LWIP_NETIF_LINK_CALLBACK=1              # Set via -D flag (no Kconfig in IDF 5.5)
+</code></pre>
+<h2 id="available-metrics-api">Available Metrics API</h2>
+<h3 id="signal-and-connection">Signal and Connection</h3>
+<ul>
+<li><code>mmwlan_get_rssi()</code> -&gt; int32_t (dBm, INT32_MIN on error)</li>
+<li><code>mmwlan_get_bssid(uint8_t *bssid)</code> -&gt; status</li>
+<li><code>mmwlan_get_aid()</code> -&gt; uint16_t (Association ID, 0 if not associated)</li>
+<li><code>mmwlan_get_sta_state()</code> -&gt; enum (DISABLED=0, CONNECTING=1, CONNECTED=2)</li>
+<li><code>mmwlan_get_mac_addr(uint8_t *mac)</code> -&gt; status</li>
+<li><code>mmwlan_get_version(struct mmwlan_version *)</code> -&gt; fw version, morselib version, chip id</li>
+</ul>
+<h3 id="ip-stack">IP Stack</h3>
+<ul>
+<li><code>mmipal_get_ip_config(struct mmipal_ip_config *)</code> -&gt; ip_addr, netmask, gateway_addr</li>
+<li><code>mmipal_get_link_packet_counts(uint32_t *tx, uint32_t *rx)</code> -&gt; packet counters</li>
+<li><code>mmipal_get_link_state()</code> -&gt; MMIPAL_LINK_UP or MMIPAL_LINK_DOWN</li>
+<li><code>mmipal_get_dns_server(uint8_t index, mmipal_ip_addr_t addr)</code> -&gt; DNS servers</li>
+</ul>
+<h3 id="advanced-not-exposed-in-esphome-component">Advanced (not exposed in ESPHome component)</h3>
+<ul>
+<li><code>mmwlan_get_duty_cycle_stats()</code> -&gt; target duty cycle, burst timing</li>
+<li><code>mmwlan_get_rc_stats()</code> -&gt; per-rate TX counts and success rates</li>
+<li><code>mmwlan_get_umac_stats()</code> -&gt; queue stats, drops, reorder buffer, CCMP failures</li>
+<li><code>mmwlan_get_morse_stats()</code> -&gt; raw transceiver stats (opaque binary blob)</li>
+<li><code>mmwlan_get_bcf_metadata()</code> -&gt; board config version, description</li>
+</ul>
+<h3 id="security-types">Security Types</h3>
+<pre><code class="language-c">enum mmwlan_security_type { MMWLAN_OPEN, MMWLAN_OWE, MMWLAN_SAE };
+</code></pre>
+<h3 id="reconnection-flow">Reconnection Flow</h3>
+<pre><code class="language-c">mmwlan_sta_disable();   // Brings link down, returns MMWLAN_SUCCESS or MMWLAN_SHUTDOWN_BLOCKED
+// Then re-call:
+mmwlan_sta_enable(&amp;sta_args, sta_status_cb);  // Starts new connection
+</code></pre>
+<h3 id="link-state-detection">Link State Detection</h3>
+<p>The <code>mmwlan_register_link_state_cb()</code> callback may not fire reliably on all SDK versions.
+Poll <code>mmipal_get_link_state()</code> as a fallback for reliable link detection:</p>
+<pre><code class="language-c">bool link_is_up = s_link_up || (mmipal_get_link_state() == MMIPAL_LINK_UP);
+</code></pre>
+<h2 id="mdns-integration-solved">mDNS Integration (solved)</h2>
+<p>mmipal creates a raw LWIP <code>struct netif</code>, NOT an <code>esp_netif_t</code>. ESP-IDF's espressif/mdns
+component requires <code>esp_netif_t*</code> for <code>mdns_register_netif()</code>. The LWIP netif is
+static/private inside mmipal with no public getter.</p>
+<h3 id="solution-fake-esp_netif_obj-wrapper">Solution: fake <code>esp_netif_obj</code> wrapper</h3>
+<p>After the HaLow link comes up and an IP is acquired, we:</p>
+<ol>
+<li>
+<p><strong>Find mmipal's LWIP netif</strong> by iterating <code>netif_list</code> (LWIP global) and matching
+   against the HaLow MAC address from <code>mmwlan_get_mac_addr()</code>.</p>
+</li>
+<li>
+<p><strong>Allocate a minimal <code>esp_netif_obj</code></strong> struct (defined in the ESP-IDF internal header
+   <code>esp_netif_lwip_internal.h</code>) and set <code>lwip_netif</code> to point to the found netif.
+   The <code>esp_netif_get_ip_info()</code> function — which mDNS calls internally — reads
+   IP/netmask/gateway directly from this LWIP netif pointer, so no other fields
+   need to be populated.</p>
+</li>
+<li>
+<p><strong>Reuse ESPHome's mDNS instance</strong>: call <code>mdns_init()</code>, which is a no-op when ESPHome's
+   mdns component has already started the responder. (The original code called
+   <code>mdns_free()</code> first, which threw away ESPHome's services and their full TXT records —
+   <code>mac</code>, <code>friendly_name</code>, <code>api_encryption</code> — and re-added only a minimal <code>_esphomelib</code>.)
+   <code>_esphomelib._tcp</code> is only added if ESPHome didn't register it.</p>
+</li>
+<li>
+<p><strong>Register and enable</strong>: call <code>mdns_register_netif()</code> with our fake <code>esp_netif_t*</code>,
+   then <code>mdns_netif_action(MDNS_EVENT_ENABLE_IP4)</code> and <code>MDNS_EVENT_ANNOUNCE_IP4</code>.
+   After a reconnect the wrapper is reused and the address re-announced.</p>
+</li>
+</ol>
+<h3 id="required-sdkconfig-for-mdns">Required sdkconfig for mDNS</h3>
+<p>Without these, <code>mdns_init()</code> tries to register WiFi/ETH event handlers that fail
+because no standard WiFi or Ethernet driver is active:</p>
+<pre><code>CONFIG_MDNS_PREDEF_NETIF_STA=n
+CONFIG_MDNS_PREDEF_NETIF_AP=n
+CONFIG_MDNS_PREDEF_NETIF_ETH=n
+</code></pre>
+<h3 id="including-the-internal-header">Including the internal header</h3>
+<p><code>esp_netif_lwip_internal.h</code> is not on the default include path. It is included as
+<code>"../lwip/esp_netif_lwip_internal.h"</code>, relative to esp_netif's public <code>include/</code>
+directory, which works with both the PlatformIO and native ESP-IDF toolchains. (The
+original <code>-I~/.platformio/...</code> flag only worked with PlatformIO.)</p>
+<h3 id="stability-note">Stability note</h3>
+<p>The <code>esp_netif_obj</code> struct layout is defined in an ESP-IDF internal header. It has been
+stable since ESP-IDF v4.x through v5.5.2. If it changes in a future IDF version, the
+fake wrapper would need updating. The struct is only used as a pointer container — mDNS
+reads <code>lwip_netif</code> and calls <code>esp_netif_get_ip_info()</code> which reads IP from the LWIP netif
+directly.</p>
+<h2 id="esphome-integration-architecture">ESPHome Integration Architecture</h2>
+<h3 id="component-design">Component Design</h3>
+<pre><code>components/halow/
+├── __init__.py              # CONFIG_SCHEMA, to_code(), build flags, auto-download SDK
+├── halow_component.h     # Class declaration with sensor pointers
+├── halow_component.cpp   # MM-IoT-SDK bridge with state machine + mDNS
+└── pre_build.py             # PlatformIO toolchain only: firmware blob linking (3 strategies)
+</code></pre>
+<h3 id="state-machine">State Machine</h3>
+<pre><code>setup() ok ──► CONNECTING ─── STA connected + valid IP ──► CONNECTED
+                 │    ▲                                        │
+   60s since last│    │ link up + IP                           │ mmipal LINK_DOWN
+   attempt, no   │    │                                        ▼
+   timer pending ▼    │                                   CONNECTING
+        schedule_reconnect() ──► FreeRTOS timer (15s) ◄── (callback schedules)
+                                        │
+                                   sta_disable()
+                                   sta_enable()
+</code></pre>
+<p>After the initial <code>sta_enable()</code> in <code>setup()</code>, only the timer task calls
+<code>mmwlan_sta_disable/enable</code>. <code>loop()</code> never touches the SDK connection state; on a
+connect timeout it just schedules the timer if it isn't already pending. The original
+code also retried from <code>loop()</code> (via a <code>STOPPED</code> state) and didn't reset the timeout
+on link loss, so the main loop and the timer could both drive the radio at once.</p>
+<h3 id="reconnection-architecture-freertos-timer">Reconnection Architecture (FreeRTOS Timer)</h3>
+<p>Modeled after the Xiao-Halow-to-WiFi-Bridge project. <strong>Critical</strong>: the <code>sta_disable()</code>
+and <code>sta_enable()</code> calls must run from a FreeRTOS timer task, NOT from the ESPHome
+main loop. The 15-second delay lets the SDK clean up its internal state.</p>
+<ol>
+<li><code>mmipal_link_status_callback()</code> fires <code>MMIPAL_LINK_DOWN</code></li>
+<li>Callback starts a 15-second one-shot FreeRTOS timer (<code>pdFALSE</code>)</li>
+<li>Timer fires <code>do_halow_reconnect()</code> from the timer service task</li>
+<li><code>mmwlan_sta_disable()</code> — cleans up the old association</li>
+<li><code>mmwlan_sta_enable()</code> — starts fresh WPA3-SAE association</li>
+<li>On success, <code>mmipal_link_status_callback()</code> fires <code>MMIPAL_LINK_UP</code></li>
+<li>If <code>sta_enable</code> fails, timer restarts for another 15s attempt</li>
+<li>If the link still isn't up 60s after the last attempt, <code>loop()</code> schedules the timer again</li>
+</ol>
+<p>The timer task's stack is raised to 4096 bytes (<code>CONFIG_FREERTOS_TIMER_TASK_STACK_DEPTH</code>)
+because these SDK calls and their logging run on it. The reconnect uses the configured
+<code>security</code> type (it was hardcoded to SAE).</p>
+<p><strong>What doesn't work</strong> (lessons learned):
+- Calling <code>sta_disable</code>/<code>sta_enable</code> from the main loop → SDK wedges
+- Calling <code>mmwlan_shutdown()</code> + <code>mmwlan_boot()</code> → WDT crash (SPI can't reinit)
+- RSSI-triggered disconnect → false triggers, crash loops from premature reconnect
+- Traffic watchdog alone → too slow (60s) or false positives</p>
+<p>Logs <code>=== LINK LOST ===</code> and <code>=== LINK RECOVERED === after Xs downtime</code>.</p>
+<h3 id="network-provider-integration">Network Provider Integration</h3>
+<p>ESPHome's <code>network::is_connected()</code> only checks its built-in interfaces
+(USE_WIFI/USE_ETHERNET/...). Without HaLow in that check, the API server disconnects
+every client with "Network down" and, with no client ever connected, reboots the
+device after <code>reboot_timeout</code> (15 min). MQTT, HTTP requests and others are gated the
+same way.</p>
+<p>The original component intercepted the mangled symbols with linker <code>--wrap</code>. That
+stopped working in ESPHome 2026.x: <code>is_connected()</code> is now <code>ESPHOME_ALWAYS_INLINE</code> in
+<code>util.h</code> (no symbol to wrap) and <code>get_use_address()</code> was replaced by
+<code>get_use_address_to()</code>. The wraps silently did nothing.</p>
+<p>Now <code>_patch_network_util()</code> in <code>__init__.py</code> reads ESPHome's own <code>network/util.h</code> and
+<code>util.cpp</code>, inserts a <code>USE_HALOW</code> branch at the top of <code>is_connected()</code> and
+<code>get_ip_addresses()</code> that calls <code>halow::network_is_connected()</code> /
+<code>halow::network_get_ip_addresses()</code>, and registers the patched copies with
+<code>add_extra_build_file()</code> so they overwrite the originals in the build tree (ESP32
+<code>copy_files()</code> runs after the source tree is copied). It works on whatever ESPHome
+version is installed, and raises a build error if it can't find those functions.
+<code>get_use_address_to()</code> needs no hook: it already returns <code>&lt;name&gt;.local</code>.</p>
+<h3 id="sdk-auto-download">SDK Auto-Download</h3>
+<p>The upstream Morse Micro MM-IoT-SDK is auto-downloaded from
+https://github.com/MorseMicro/mm-iot-esp32 to <code>~/.esphome/mm-iot-esp32/</code>
+on first compile, <strong>pinned to commit <code>96d9bf4</code></strong> (<code>MM_IOT_SDK_COMMIT</code> in <code>__init__.py</code>)
+via <code>git init</code> + <code>fetch --depth 1 &lt;sha&gt;</code>. The original cloned whatever HEAD was at the
+time, so a new Morse commit (or HAOS wiping <code>/root/.esphome</code>) could silently change
+the firmware. An existing checkout at a different commit triggers a warning.
+<strong>No patches needed</strong> to the SDK itself. Users can override with <code>mm_iot_sdk_path</code>.</p>
+<h3 id="sub-band-configuration">Sub-Band Configuration</h3>
+<p>The upstream SDK v2.10.4 enables sub-band support by default, which allows the
+rate controller to drop to 1-2 MHz channels. This drastically reduces throughput
+and RSSI compared to 8 MHz operation. The component disables sub-bands by default
+(<code>sub_bands: false</code>). Users who need maximum range at the expense of throughput
+can enable them with <code>sub_bands: true</code>.</p>
+<h3 id="build-system">Build System</h3>
+<ul>
+<li><code>add_idf_component(path=...)</code> for morselib, mm_shims, mmipal, mmutils, mmpktmem,
+  mmregdb</li>
+<li><code>add_idf_sdkconfig_option()</code> for Kconfig (pins, FreeRTOS, BCF, chip type, LWIP)</li>
+<li><code>pre_build.py</code> (PlatformIO toolchain only; the native ESP-IDF toolchain embeds the blobs through the SDK's CMakeLists) handles firmware blob linking with 3 fallback strategies:
+  1. <strong>ninja</strong>: runs CMake custom targets (objcopy .mbin -&gt; .o)
+  2. <strong>copy</strong>: copies pre-built .o files from SDK mm_shims/ directory
+  3. <strong>objcopy</strong>: generates .o directly from .mbin source files</li>
+<li>Auto-detects BCF name from Kconfig choice (Seeed) or string (upstream)</li>
+<li>Historically used a pre-patched Seeed MM-IoT-SDK v2.6.4 fork; now uses the upstream SDK, pinned (see ARCHITECTURE.md)</li>
+</ul>
+<h3 id="sensors">Sensors</h3>
+<p>All sensors are optional YAML config entries within the <code>halow:</code> block:</p>
+<p><strong>Numeric sensors</strong> (<code>sensor.sensor_schema()</code>):
+| Config Key       | Unit | Device Class      | Source API |
+|------------------|------|-------------------|------------|
+| <code>rssi</code>           | dBm  | signal_strength   | <code>mmwlan_get_rssi()</code> |
+| <code>tx_packets</code>     | —    | total_increasing  | <code>mmipal_get_link_packet_counts()</code> |
+| <code>rx_packets</code>     | —    | total_increasing  | <code>mmipal_get_link_packet_counts()</code> |
+| <code>mcs</code>            | —    | measurement       | <code>mmwlan_get_rc_stats()</code> (delta-based) |
+| <code>bandwidth</code>      | MHz  | measurement       | <code>mmwlan_get_rc_stats()</code> (delta-based) |
+| <code>tx_success_rate</code> | %   | measurement       | <code>mmwlan_get_rc_stats()</code> (delta-based) |</p>
+<p><strong>Text sensors</strong> (<code>text_sensor.text_sensor_schema()</code>):
+| Config Key         | Source API |
+|--------------------|------------|
+| <code>ip_address</code>       | <code>mmipal_get_ip_config()</code> |
+| <code>gateway_address</code>  | <code>mmipal_get_ip_config()</code> |
+| <code>subnet_mask</code>      | <code>mmipal_get_ip_config()</code> |
+| <code>connected_ssid</code>   | Config value (static) |
+| <code>bssid</code>            | <code>mmwlan_get_bssid()</code> |
+| <code>mac_address</code>      | <code>mmwlan_get_mac_addr()</code> |
+| <code>firmware_version</code> | <code>mmwlan_get_version()</code> |
+| <code>link_quality</code>     | Derived from MCS + TX success rate |</p>
+<h3 id="link-quality-sensor">Link Quality Sensor</h3>
+<p>The <code>link_quality</code> text sensor provides a human-friendly summary of the radio link:</p>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Value</th>
+<th>MCS</th>
+<th>TX Success</th>
+<th>Meaning</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>Excellent</td>
+<td>5-7</td>
+<td>&gt;95%</td>
+<td>Full speed, strong signal</td>
+</tr>
+<tr>
+<td>Good</td>
+<td>3-4</td>
+<td>&gt;90%</td>
+<td>Moderate speed, reliable</td>
+</tr>
+<tr>
+<td>Fair</td>
+<td>1-2</td>
+<td>&gt;80%</td>
+<td>Reduced speed, usable</td>
+</tr>
+<tr>
+<td>Poor</td>
+<td>0</td>
+<td>&gt;50%</td>
+<td>Minimum speed, marginal</td>
+</tr>
+<tr>
+<td>Critical</td>
+<td>any</td>
+<td>&lt;50%</td>
+<td>Severe packet loss, link at risk</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>MCS (Modulation and Coding Scheme)</strong> is how the radio trades speed for range —
+equivalent to LoRa's spreading factor. MCS 7 is fastest (highest throughput, needs
+strong signal), MCS 0 is slowest (maximum range, works at weakest signal). The radio
+adapts MCS automatically per-frame based on channel conditions.</p>
+<p><strong>TX Success Rate</strong> shows what percentage of frames are delivered without
+retransmission. Below 50% means most frames need multiple attempts.</p>
+<p>The rate control stats use <strong>delta-based tracking</strong> — comparing <code>mmwlan_get_rc_stats()</code>
+between 10-second update cycles to find the currently active rate, not the lifetime
+most-used rate.</p>
+<p>Sensors update every 10 seconds while connected. Static values (MAC, FW version, SSID)
+are published once on first connection.</p>
+<h2 id="power-save-and-battery-operation">Power Save and Battery Operation</h2>
+<h3 id="power-save-modes">Power Save Modes</h3>
+<pre><code class="language-c">enum mmwlan_ps_mode { MMWLAN_PS_DISABLED, MMWLAN_PS_ENABLED };
+mmwlan_set_power_save_mode(MMWLAN_PS_DISABLED);  // Call after mmwlan_boot()
+</code></pre>
+<ul>
+<li><strong>MMWLAN_PS_ENABLED (default)</strong>: Radio wakes only at each beacon interval (100ms on
+  HaLowLink 2) to check for buffered frames. Between beacons, radio sleeps.
+  Saves power (~10-30mW avg) but causes missed inbound ARP/ICMP packets, making
+  the device intermittently unreachable. <strong>This was the root cause of ping failures.</strong></li>
+<li><strong>MMWLAN_PS_DISABLED</strong>: Radio stays awake continuously (~100-200mW). Responds
+  instantly. Required for reliable bidirectional communication (API, OTA, ping).</li>
+</ul>
+<h3 id="busy-pin-issue-blocks-power-save-twt">BUSY Pin Issue (Blocks Power Save / TWT)</h3>
+<p>The BUSY pin signals when the MM6108 is awake and ready for SPI commands. It's
+essential for power save and TWT modes. <strong>It's currently broken in Morse Micro firmware.</strong></p>
+<ul>
+<li>Morse Micro community confirmed BUSY pin "is no longer happening" in recent firmware</li>
+<li>This is a <strong>firmware bug</strong>, not a Seeed hardware issue — the XIAO HaLow Hat wires BUSY to GPIO 5</li>
+<li><strong>Workaround</strong>: use <code>MORSE_CMD_PARAM_ID_WAKE_ACTION_GPIO</code> to designate a different
+  MM6108 GPIO for wake signaling (confirmed working on STM32)</li>
+<li><strong>Our current approach</strong>: <code>MMWLAN_PS_DISABLED</code> bypasses the issue entirely</li>
+<li>Monitor <a href="https://github.com/MorseMicro/firmware_binaries/releases/" target="_blank" rel="noopener">Morse Micro firmware releases</a>
+  for a fix</li>
+</ul>
+<p>Source: <a href="https://community.morsemicro.com/t/stm32-wakeup-issue-with-mm6108-mf08551-standby-mode/841" target="_blank" rel="noopener">STM32 Wakeup Issue with MM6108</a></p>
+<h3 id="target-wake-time-twt-80211ahs-killer-feature">Target Wake Time (TWT) — 802.11ah's Killer Feature</h3>
+<p>TWT allows a device to negotiate a sleep schedule with the AP:
+- Device tells AP: "Wake me every N seconds for M milliseconds"
+- AP buffers packets and delivers them at the agreed time
+- Device stays associated but sleeps deeply between TWT windows
+- <strong>No re-authentication needed</strong> — skips the 8-10s WPA3-SAE handshake
+- Wake time drops to ~100-500ms (vs 10s for full reconnect)
+- API: <code>mmwlan_set_twt_setup()</code> (available in MM-IoT-SDK)
+- HaLowLink 2 supports TWT as AP</p>
+<h3 id="battery-sensor-architecture">Battery Sensor Architecture</h3>
+<p>For a battery-powered sensor, the flow would be:</p>
+<p><strong>Without TWT (simple deep sleep):</strong>
+1. Wake from ESP32 deep sleep (GPIO/timer/sensor interrupt)
+2. Boot ESP32 (~300ms)
+3. mmhal_init + mmwlan_boot (~700ms, loads firmware over SPI)
+4. mmwlan_sta_enable — full WPA3-SAE handshake (~8-10s)
+5. Read sensor, send data (MQTT/API)
+6. mmwlan_sta_disable, enter ESP32 deep sleep
+7. <strong>Total wake time: ~10-12 seconds per cycle</strong></p>
+<p><strong>With TWT (stay associated):</strong>
+1. Wake from TWT interrupt
+2. Send buffered sensor data (~100-500ms)
+3. Receive any buffered commands from AP
+4. Sleep until next TWT window
+5. <strong>Total wake time: ~100-500ms per cycle</strong></p>
+<h3 id="power-budget-estimates">Power Budget Estimates</h3>
+<ul>
+<li>ESP32-S3 deep sleep: ~10μA</li>
+<li>MM6108 held in reset (RESET_N low): ~0μA</li>
+<li>HaLow TX burst: ~300mA for ~30ms</li>
+<li>With TWT at 5-minute interval: ~50-100μA average</li>
+<li>CR123A battery (1500mAh): months to years depending on interval</li>
+</ul>
+<h3 id="ap-idle-timeout">AP Idle Timeout</h3>
+<p>Without TWT, the AP will disassociate the device after its idle timeout
+(typically 5-30 minutes of silence, configurable on HaLowLink). After
+disassociation, a full 10-second WPA3-SAE reconnect is required.</p>
+<h2 id="halow-vs-lora-comparison">HaLow vs LoRa Comparison</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Feature</th>
+<th>Wi-Fi HaLow (802.11ah)</th>
+<th>LoRa/LoRaWAN</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td><strong>Protocol</strong></td>
+<td>Standard IP (TCP/UDP/DHCP)</td>
+<td>Proprietary, needs gateway translation</td>
+</tr>
+<tr>
+<td><strong>Range</strong></td>
+<td>~1 km</td>
+<td>10-15 km line-of-sight</td>
+</tr>
+<tr>
+<td><strong>Bandwidth</strong></td>
+<td>Up to 32 Mbps</td>
+<td>~50 kbps</td>
+</tr>
+<tr>
+<td><strong>Latency</strong></td>
+<td>7-11 ms (measured)</td>
+<td>Minutes (Class A downlink)</td>
+</tr>
+<tr>
+<td><strong>Direction</strong></td>
+<td>Full bidirectional</td>
+<td>Primarily uplink, limited downlink</td>
+</tr>
+<tr>
+<td><strong>Security</strong></td>
+<td>WPA3-SAE</td>
+<td>AppKey/NwkKey</td>
+</tr>
+<tr>
+<td><strong>OTA updates</strong></td>
+<td>Native (same connection)</td>
+<td>Complex, unreliable</td>
+</tr>
+<tr>
+<td><strong>Device density</strong></td>
+<td>1000/AP (managed scheduling)</td>
+<td>Degrades with density (ALOHA)</td>
+</tr>
+<tr>
+<td><strong>Integration</strong></td>
+<td>Direct IP — ESPHome, MQTT, HA native</td>
+<td>Needs gateway + bridge + MQTT translation</td>
+</tr>
+<tr>
+<td><strong>Power (TX)</strong></td>
+<td>~300mA for ~30ms</td>
+<td>~30mA for ~30ms</td>
+</tr>
+<tr>
+<td><strong>Reconnect time</strong></td>
+<td>8-10s (WPA3-SAE) or 100ms (TWT)</td>
+<td>~1s</td>
+</tr>
+<tr>
+<td><strong>Module cost</strong></td>
+<td>~$15-20 (MM6108)</td>
+<td>~$5 (RFM95)</td>
+</tr>
+<tr>
+<td><strong>AP/Gateway cost</strong></td>
+<td>~$100+ (HaLowLink 2)</td>
+<td>~$150+ (LoRa gateway) or free (TTN)</td>
+</tr>
+<tr>
+<td><strong>Infrastructure</strong></td>
+<td>Requires HaLow AP</td>
+<td>Point-to-point possible with $5 modules</td>
+</tr>
+<tr>
+<td><strong>Ecosystem</strong></td>
+<td>New (2025-2026)</td>
+<td>Mature (since 2015)</td>
+</tr>
+</tbody>
+</table></div>
+<p><strong>Use HaLow when</strong>: You want a real IP network, bidirectional control, OTA updates,
+direct Home Assistant integration, and have power for an AP. Dozens of sensors around
+a building or campus.</p>
+<p><strong>Use LoRa when</strong>: You need maximum range with minimum infrastructure — a sensor 5km
+away, one reading per hour, no need for commands back. Or when every microamp matters
+and you can't afford the WPA3 handshake overhead.</p>
+<h2 id="halowlink-2-ap-configuration">HaLowLink 2 AP Configuration</h2>
+<h3 id="network-mode-critical">Network Mode (Critical)</h3>
+<p>The HaLowLink 2 Quick Config Wizard controls bridging:
+- <strong>"HaLow devices get IP on this device's network"</strong> — Router/NAT mode (default).
+  HaLow devices are NATed. Cannot be reached from LAN.
+- <strong>"HaLow devices get IP on your existing router's network"</strong> — Bridge mode.
+  HaLow devices are L2 bridged to the WAN port. Same subnet as LAN.</p>
+<p>Access wizard at: <code>https://&lt;halowlink-ip&gt;/cgi-bin/luci/admin/morseapwizard</code></p>
+<h3 id="firewall-fix-required">Firewall Fix Required</h3>
+<p>Even in bridge mode, the <code>wlan</code> firewall zone has <code>masq=1</code> (masquerade/NAT) enabled
+by default. This hides HaLow devices behind the HaLowLink's IP. <strong>Must disable:</strong></p>
+<pre><code class="language-bash">ssh root@&lt;halowlink-ip&gt;  # password from device label
+uci set firewall.wlan.masq=0
+uci commit firewall
+/etc/init.d/firewall restart
+</code></pre>
+<h3 id="port-wiring">Port Wiring</h3>
+<ul>
+<li><strong>WAN port</strong>: Connect to your LAN. In bridge mode, the wizard bridges WAN↔HaLow.</li>
+<li><strong>LAN port</strong>: Used for management access (separate bridge, not for HaLow traffic).</li>
+<li>Plugging into the LAN port instead of WAN will get DHCP but no L2 bridging.</li>
+</ul>
+<h3 id="bridge-topology">Bridge Topology</h3>
+<pre><code>br-wlan: wlan0 (HaLow radio) + wan (WAN ethernet port)  ← bridged for data
+br-lan:  lan (LAN port) + phy0-ap0 (2.4GHz WiFi) + usblan  ← management
+</code></pre>
+<h3 id="lwip-netif_set_link_up-fix">LWIP netif_set_link_up Fix</h3>
+<p>On ESP-IDF 5.5.2 with the Seeed SDK, the mmipal link-up callback doesn't fire
+reliably. Without <code>netif_set_link_up()</code>, LWIP won't respond to ARP even though
+the radio is connected. The component forces this after IP acquisition by finding
+the netif via MAC match in <code>netif_list</code>. Must use <code>LOCK_TCPIP_CORE()</code> wrapper.</p>
+<h3 id="ota-shutdown-handler-critical-for-reliable-ota">OTA Shutdown Handler (Critical for Reliable OTA)</h3>
+<p>After <code>esp_restart()</code> (OTA reboot), the ESP32's SPI2 peripheral and the MM-IoT-SDK's
+internal state are corrupted. Simply resetting the SPI hardware on boot is insufficient.</p>
+<p><strong>Fix</strong>: Register <code>esp_register_shutdown_handler()</code> that runs BEFORE <code>esp_restart()</code>:</p>
+<pre><code class="language-c">static void halow_shutdown_handler() {
+    mmwlan_sta_disable();              // Disconnect STA
+    mmwlan_shutdown();                 // Power down MM6108
+    mmwlan_deinit();                   // Clean up SDK + SPI bus
+    periph_module_reset(PERIPH_SPI2_MODULE);  // Reset SPI hardware
+    gpio_set_level(RESET_N, 0);        // Hold MM6108 in reset
+}
+
+// In setup():
+esp_register_shutdown_handler(halow_shutdown_handler);
+</code></pre>
+<p>This properly deinitializes the WLAN stack and SPI bus while still running, so the
+next boot starts with a clean slate. Verified with 3 consecutive OTA cycles, all clean.</p>
+<h3 id="ota-updates">OTA Updates</h3>
+<ul>
+<li>Upload: 1.05 MB in 8-13 seconds (~112 KB/s) over HaLow link</li>
+<li>Reboot after OTA: reliable (shutdown handler cleans up before restart)</li>
+<li>Device reconnects to AP and HA automatically after OTA reboot</li>
+<li>Verified: 3 consecutive OTA uploads, zero crash loops</li>
+</ul>
+<h3 id="firmware-release-monitoring">Firmware Release Monitoring</h3>
+<p>Watch these repos for SDK updates (BUSY pin fix, IDF 5.5 native support):
+- <a href="https://github.com/MorseMicro/mm-iot-esp32" target="_blank" rel="noopener">MorseMicro/mm-iot-esp32</a> — ESP32 SDK
+- <a href="https://github.com/MorseMicro/firmware_binaries/releases/" target="_blank" rel="noopener">MorseMicro/firmware_binaries</a> — Firmware releases
+- <a href="https://community.morsemicro.com" target="_blank" rel="noopener">Morse Micro Community</a> — BUSY pin fix discussion</p>
+<h2 id="verified-test-results">Verified Test Results</h2>
+<div class="tablewrap"><table>
+<thead>
+<tr>
+<th>Date</th>
+<th>Test</th>
+<th>Result</th>
+</tr>
+</thead>
+<tbody>
+<tr>
+<td>2026-04-30</td>
+<td>SPI probe (raw SDIO CMD0/CMD5/CMD52)</td>
+<td>CCCR registers readable, FBR1 accessible</td>
+</tr>
+<tr>
+<td>2026-04-30</td>
+<td>Network scan (Seeed SDK, IDF 5.1.1)</td>
+<td>Found halowlink2-627b, RSSI -41 dBm, 8 MHz, SAE</td>
+</tr>
+<tr>
+<td>2026-04-30</td>
+<td>WPA3-SAE connection (Seeed SDK, IDF 5.1.1)</td>
+<td>Link up in ~8s</td>
+</tr>
+<tr>
+<td>2026-04-30</td>
+<td>DHCP over HaLow</td>
+<td>IP 192.168.12.164, GW 192.168.12.1, mask /24</td>
+</tr>
+<tr>
+<td>2026-04-30</td>
+<td>LWIP + iperf UDP server</td>
+<td>Server listening on port 5001, IPv4 + IPv6</td>
+</tr>
+<tr>
+<td>2026-04-30</td>
+<td>ESPHome compile (Seeed SDK, IDF 5.5.2)</td>
+<td>1.08MB firmware, 59% flash</td>
+</tr>
+<tr>
+<td>2026-04-30</td>
+<td>ESPHome full boot with sensors</td>
+<td>All sensors reporting, API+OTA running</td>
+</tr>
+<tr>
+<td>2026-04-30</td>
+<td>mDNS registration</td>
+<td><code>halow-test.local</code> registered on HaLow interface</td>
+</tr>
+<tr>
+<td>2026-04-30</td>
+<td>Upstream SDK (v2.10.4, IDF 5.5.2)</td>
+<td>FW loads but connection fails (BCF issue)</td>
+</tr>
+<tr>
+<td>2026-04-30</td>
+<td>20-min soak test</td>
+<td>Heap stable at 304,520 (zero delta), 0 errors</td>
+</tr>
+<tr>
+<td>2026-05-01</td>
+<td>Ping from LAN (power save ON)</td>
+<td>Intermittent: 5/20 success, ARP timeouts</td>
+</tr>
+<tr>
+<td>2026-05-01</td>
+<td>Ping from LAN (power save OFF)</td>
+<td><strong>10/10, 0% loss, 7-11ms latency</strong></td>
+</tr>
+<tr>
+<td>2026-05-01</td>
+<td>ESPHome API port from LAN</td>
+<td>TCP connect to 192.168.1.86:6053 succeeded</td>
+</tr>
+<tr>
+<td>2026-05-01</td>
+<td>Home Assistant connected</td>
+<td>HA 2026.4.2 connected, all entities visible</td>
+</tr>
+<tr>
+<td>2026-05-01</td>
+<td>Auto-download SDK</td>
+<td>Clean build from scratch succeeds in ~140s</td>
+</tr>
+<tr>
+<td>2026-05-01</td>
+<td>AP power cycle reconnect</td>
+<td><strong>Working</strong> — LINK LOST → RECOVERED after 53s, no crash</td>
+</tr>
+<tr>
+<td>2026-05-02</td>
+<td>Range walk reconnect</td>
+<td><strong>Working</strong> — 16s recovery via FreeRTOS timer, no crash</td>
+</tr>
+<tr>
+<td>2026-05-02</td>
+<td>Range test RSSI profile</td>
+<td>-29 (close) → -70 (edge) → STA DISABLED → reconnect at -60</td>
+</tr>
+<tr>
+<td>2026-05-02</td>
+<td>Antenna disconnect test</td>
+<td><strong>Working</strong> — 85s recovery (antenna off ~70s), 3 attempts, no crash</td>
+</tr>
+<tr>
+<td>2026-05-02</td>
+<td>Repeated antenna cycles</td>
+<td><strong>Working</strong> — 2 cycles, 113s + 154s recovery, no crash</td>
+</tr>
+<tr>
+<td>2026-05-02</td>
+<td>MCS adaptation observed</td>
+<td>MCS 7→0→1→2→...→7 during antenna loosen/tighten</td>
+</tr>
+<tr>
+<td>2026-05-02</td>
+<td>OTA over HaLow</td>
+<td><strong>Working</strong> — 1.05MB in 8-13s, reboot + reconnect clean</td>
+</tr>
+<tr>
+<td>2026-05-02</td>
+<td>OTA reboot recovery</td>
+<td><strong>Fixed</strong> — periph_module_reset(SPI2) prevents crash loop</td>
+</tr>
+</tbody>
+</table></div>
+<h3 id="working-configuration-seeed-sdk-idf-552">Working Configuration (Seeed SDK + IDF 5.5.2)</h3>
+<pre><code>Morse firmware version 1.13.1
+morselib version 2.6.4-esp32
+Morse chip ID 0x306
+Actual SPI CLK 40000kHz
+HaLow MAC: A8:DD:9F:4D:C6:01
+Setup time: ~720ms (to mmwlan_sta_enable)
+Connection time: ~10s from cold boot
+RSSI: -33 to -37 dBm
+Ping latency: 7-11ms (power save disabled)
+DHCP IP: 192.168.1.86 (bridged via HaLowLink 2 WAN port)
+Gateway: 192.168.1.1
+BSSID: 50:2E:91:D2:C9:E4
+BCF: bcf_mf16858_us.mbin
+mDNS: halow-test.local registered
+ESPHome API: port 6053 (reachable from LAN)
+ESPHome OTA: port 3232
+Power save: disabled (required for reliable inbound connectivity)
+Heap: 304,520 bytes free (stable, no leaks)
+HA: Home Assistant 2026.4.2 connected via API
+SDK: auto-downloaded from sweitzja/mm-iot-esp32 fork
+Network: build-time patch of ESPHome network/util.h + util.cpp (USE_HALOW branch)
+Reconnect: RSSI + STA state monitoring, auto-retry with 5s backoff
+</code></pre>
+<h2 id="development-environment">Development Environment</h2>
+<h3 id="local-paths">Local Paths</h3>
+<ul>
+<li>Project: <code>/home/jason/esphome-halow/</code></li>
+<li>ESP-IDF (standalone): <code>~/esp/esp-idf-v5.1.1/</code></li>
+<li>MM-IoT-SDK (Seeed, patched): <code>~/esp/mm-iot-esp32/</code></li>
+<li>MM-IoT-SDK (upstream): <code>~/esp/mm-iot-esp32-upstream/</code></li>
+<li>PlatformIO toolchain: <code>~/.platformio/packages/toolchain-xtensa-esp-elf/</code></li>
+</ul>
+<h3 id="serial-access-wsl2">Serial Access (WSL2)</h3>
+<ol>
+<li>In Windows PowerShell (admin): <code>usbipd attach --wsl --busid 5-2</code></li>
+<li>In WSL: <code>sudo chmod 666 /dev/ttyACM0</code> (or add user to <code>dialout</code> group)</li>
+<li>Device appears as <code>/dev/ttyACM0</code> (USB JTAG/serial debug)</li>
+</ol>
+<h2 id="related-projects">Related Projects</h2>
+<ul>
+<li><a href="https://github.com/MorseMicro/mm-iot-esp32" target="_blank" rel="noopener">MorseMicro mm-iot-esp32</a> -- Upstream SDK (v2.10.4, IDF &gt;=5.1.1)</li>
+<li><a href="https://github.com/Seeed-Studio/mm-iot-esp32" target="_blank" rel="noopener">Seeed mm-iot-esp32</a> -- Seeed fork (v2.6.4, <strong>used with patches</strong>)</li>
+<li><a href="https://github.com/MorseMicro/morse-firmware" target="_blank" rel="noopener">MorseMicro morse-firmware</a> -- BCF files for Quectel modules (.bin format, needs conversion)</li>
+<li><a href="https://github.com/gtgreenw/Xiao-Halow-to-WiFi-Bridge" target="_blank" rel="noopener">Xiao-Halow-to-WiFi-Bridge</a> -- Community ESP32-S3 HaLow bridge</li>
+<li><a href="https://community.morsemicro.com" target="_blank" rel="noopener">Morse Micro Community</a> -- Forum for BCF and SDK questions</li>
+</ul></div>
+    <div class="links"><a class="btn small" href="https://github.com/DefeatedWarrior/esphome-halow/blob/main/docs/HALOW_NOTES.md">View source on GitHub</a></div>
+    <nav class="pn"><a href="esphome-compatibility.html"><small>← Previous</small>ESPHome compatibility</a><a class="r" href="patches.html"><small>Next →</small>Patches against upstream</a></nav>
+  </article>
+</div>
+
+<footer>Open-source hardware and firmware by <a href="https://github.com/DefeatedWarrior">DefeatedWarrior</a>. Documentation pages are rendered from each project's repository.</footer>
+</body>
+</html>
