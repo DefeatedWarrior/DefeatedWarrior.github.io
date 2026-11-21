@@ -398,8 +398,10 @@
       info.usbVendorId === S.portInfo.usbVendorId && info.usbProductId === S.portInfo.usbProductId;
   }
 
+  // Returns false when the port didn't open. While reconnecting after a
+  // restart that is not final: waitForPort() keeps trying.
   async function attach(port) {
-    if (S.attaching) return;
+    if (S.attaching) return false;
     S.attaching = true;
     retryBtn.hidden = true;
     try {
@@ -409,11 +411,14 @@
       try {
         await port.open({ baudRate: BAUD, bufferSize: 16384 });
       } catch (e) {
-        S.waiting = false;
+        if (S.waiting) {
+          setConn('busy', 'The node went away', 'Waiting for it to come back…');
+          return false;
+        }
         setConn('err', 'Can\'t open the port',
           'Another window or program is using it. Close the install window and any serial monitor, then click Connect again.' +
           ' <span class="muted">(' + esc(e.message) + ')</span>');
-        return;
+        return false;
       }
       S.waiting = false;
       var link = new Link(port, logLine, lost);
@@ -424,6 +429,7 @@
       S.attaching = false;
     }
     await handshake();
+    return true;
   }
 
   // The node restarted (native USB drops off the bus) or was unplugged.
@@ -441,7 +447,7 @@
       if (!S.attaching) {
         var ports = await navigator.serial.getPorts();
         var p = ports.filter(function (x) { return samePort(x.getInfo()) && !x.readable; })[0];
-        if (p) { await attach(p); return; }
+        if (p && await attach(p)) return;
       }
       await sleep(700);
     }
@@ -969,6 +975,9 @@
             failedSince = 0;
             sw.text('Joining “' + r.ssid + '”…' + (w.state === 'getting_ip' ? ' getting an address' : ''));
           }
+        } else if (n.primary === 'ap') {
+          sw.done('Own network “' + n.ap.ssid + '” is up at ' + n.ap.ip + '. Join it to reach the node.');
+          return true;
         } else if (n.primary && n.primary !== 'none') {
           sw.done('On the network: ' + (n.ip_address || ''));
           return true;
