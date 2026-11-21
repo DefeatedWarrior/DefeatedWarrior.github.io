@@ -1,11 +1,13 @@
 /*
  * Flasher page (flasher.html).
  *
- * Install: ESP Web Tools does the flashing. This script fills the board list
- * from flasher/ghostlight-node/boards.json, which the "Ghostlight Node
- * firmware" workflow writes from the newest firmware release.
+ * One subtab per project (Ghostlight Node, OpenTheatreComms Beltpack).
  *
- * Set up over USB: talks to the firmware's USB setup over Web Serial
+ * Install: ESP Web Tools does the flashing. initInstall() fills a project's
+ * board list from flasher/<project>/boards.json; for the Ghostlight Node the
+ * "Ghostlight Node firmware" workflow writes it from the newest release.
+ *
+ * Set up over USB (Ghostlight Node): talks to the firmware's USB setup over Web Serial
  * (components/serial_setup in ghostlight-node-firmware). One request per
  * line, "#GL {json}", one reply line "#GL> {json}" with the same id.
  * Everything else the port prints is the node's log.
@@ -13,8 +15,7 @@
 (function () {
   'use strict';
 
-  var FW = 'flasher/ghostlight-node/';
-  var REPO = 'https://github.com/DefeatedWarrior/ghostlight-node-firmware';
+  var GL_REPO = 'https://github.com/DefeatedWarrior/ghostlight-node-firmware';
   var BAUD = 115200;
 
   var $ = function (id) { return document.getElementById(id); };
@@ -31,13 +32,52 @@
   var utf8len = function (s) { return new TextEncoder().encode(s).length; };
 
   // ===================================================================
-  // Tabs
+  // Project subtabs, and the Install / Set up steps of the Ghostlight Node
+  //
+  // URLs: flasher.html (Ghostlight, Install), #setup (Ghostlight, Set up
+  // over USB), #update (Ghostlight, Install, at the update note) and
+  // #<project> for the other projects, for example #beltpack.
   // ===================================================================
 
+  var projects = {};
+  document.querySelectorAll('[data-project]').forEach(function (b) { projects[b.getAttribute('data-project')] = b; });
+  var projectIds = Object.keys(projects);
+  var currentProject = 'ghostlight-node';
+  var currentStep = 'install';
   var tabs = { install: $('tab-install'), setup: $('tab-setup') };
   var panels = { install: $('panel-install'), setup: $('panel-setup') };
 
+  function setHash() {
+    var hash = currentProject !== 'ghostlight-node' ? '#' + currentProject
+      : currentStep === 'setup' ? '#setup' : '';
+    if (hash === '' && location.hash === '#update') return;
+    if (location.hash !== hash) history.replaceState(null, '', location.pathname + location.search + hash);
+  }
+
+  function showProject(id, focus) {
+    if (!projects[id]) id = 'ghostlight-node';
+    currentProject = id;
+    projectIds.forEach(function (k) {
+      var on = k === id;
+      projects[k].setAttribute('aria-selected', on ? 'true' : 'false');
+      projects[k].tabIndex = on ? 0 : -1;
+      $('proj-' + k).hidden = !on;
+    });
+    if (focus) projects[id].focus();
+    setHash();
+  }
+  projectIds.forEach(function (k, i) {
+    projects[k].addEventListener('click', function () { showProject(k); });
+    projects[k].addEventListener('keydown', function (e) {
+      var step = e.key === 'ArrowRight' ? 1 : e.key === 'ArrowLeft' ? -1 : 0;
+      if (!step) return;
+      e.preventDefault();
+      showProject(projectIds[(i + step + projectIds.length) % projectIds.length], true);
+    });
+  });
+
   function showTab(name, focus) {
+    currentStep = name;
     Object.keys(tabs).forEach(function (k) {
       var on = k === name;
       tabs[k].setAttribute('aria-selected', on ? 'true' : 'false');
@@ -45,10 +85,7 @@
       panels[k].hidden = !on;
     });
     if (focus) tabs[name].focus();
-    var hash = name === 'setup' ? '#setup' : '';
-    if (location.hash !== hash && !(name === 'install' && location.hash === '#update')) {
-      history.replaceState(null, '', location.pathname + location.search + hash);
-    }
+    setHash();
   }
   Object.keys(tabs).forEach(function (k) {
     tabs[k].addEventListener('click', function () { showTab(k); });
@@ -66,73 +103,87 @@
       window.scrollTo({ top: $('tab-install').getBoundingClientRect().top + window.scrollY - 90 });
     });
   });
-  function tabFromHash() {
-    if (location.hash === '#setup') showTab('setup');
-    else if (location.hash === '#update') showTab('install');
+
+  function route() {
+    var h = location.hash.slice(1);
+    if (h === 'setup') currentStep = 'setup';
+    else if (h === 'update' || h === 'install') currentStep = 'install';
+    showProject(projects[h] ? h : 'ghostlight-node');
+    showTab(currentStep);
   }
-  window.addEventListener('hashchange', tabFromHash);
-  tabFromHash();
+  window.addEventListener('hashchange', route);
+  route();
 
   // ===================================================================
-  // Install
+  // Install: a board list from <fw>boards.json (written by the project's
+  // firmware workflow) feeding an ESP Web Tools install button
   // ===================================================================
 
-  var release = null;
-  var boardSelect = $('board');
-  var installEl = $('install');
-  var installBtn = $('install-btn');
+  function initInstall(o) {
+    var el = {};
+    Object.keys(o.ids).forEach(function (k) { el[k] = $(o.ids[k]); });
+    var release = null;
 
-  function boardChanged() {
-    var b = release && release.boards.filter(function (x) { return x.board === boardSelect.value; })[0];
-    var ota = $('ota-link');
-    if (b) {
-      installEl.setAttribute('manifest', FW + b.manifest);
-      installBtn.disabled = false;
-      $('board-desc').textContent = b.description || '';
-      if (b.ota && release.tag) {
-        ota.href = REPO + '/releases/download/' + encodeURIComponent(release.tag) + '/' + encodeURIComponent(b.ota);
-        ota.textContent = b.ota;
+    function boardChanged() {
+      var b = release && release.boards.filter(function (x) { return x.board === el.select.value; })[0];
+      if (b) {
+        el.install.setAttribute('manifest', o.fw + b.manifest);
+        el.button.disabled = false;
+        el.desc.textContent = b.description || '';
+        if (el.ota && b.ota && release.tag) {
+          el.ota.href = o.repo + '/releases/download/' + encodeURIComponent(release.tag) + '/' + encodeURIComponent(b.ota);
+          el.ota.textContent = b.ota;
+        }
+        store.set(o.storeKey, b.board);
+      } else {
+        el.install.removeAttribute('manifest');
+        el.button.disabled = true;
+        if (el.ota) {
+          el.ota.href = release && release.release_url ? release.release_url : o.repo + '/releases';
+          el.ota.textContent = 'the update file for your board';
+        }
       }
-      store.set('flasher.board', b.board);
-    } else {
-      installEl.removeAttribute('manifest');
-      installBtn.disabled = true;
-      ota.href = release && release.release_url ? release.release_url : REPO + '/releases';
-      ota.textContent = 'the update file for your board';
     }
+    el.select.addEventListener('change', boardChanged);
+
+    fetch(o.fw + 'boards.json', { cache: 'no-cache' })
+      .then(function (r) {
+        if (!r.ok) throw new Error(r.status + ' ' + r.statusText);
+        return r.json();
+      })
+      .then(function (data) {
+        release = data;
+        if (!data.boards || !data.boards.length) {
+          el.version.innerHTML = 'No release yet · <a href="' + o.repo + '">build it from source</a>';
+          el.select.innerHTML = '<option value="">No firmware published yet</option>';
+          el.desc.innerHTML = o.noReleaseHtml;
+          return;
+        }
+        el.version.innerHTML = 'Firmware ' + esc(data.version) + ' · <a href="' + esc(data.release_url) + '">release notes</a>';
+        el.select.innerHTML = '<option value="">Choose a board…</option>' + data.boards.map(function (b) {
+          return '<option value="' + esc(b.board) + '">' + esc(b.board) + ' (' + esc(b.chip_family) + ')</option>';
+        }).join('');
+        el.select.disabled = false;
+        var last = store.get(o.storeKey);
+        if (last && data.boards.some(function (b) { return b.board === last; })) el.select.value = last;
+        boardChanged();
+      })
+      .catch(function (err) {
+        el.version.textContent = 'Couldn\'t load the firmware list (' + err.message + ')';
+        el.select.innerHTML = '<option value="">Not available</option>';
+      });
+
+    // The installer needs the port to itself: let go of it first.
+    el.button.addEventListener('click', function () { if (S.link) disconnect(); });
   }
-  boardSelect.addEventListener('change', boardChanged);
 
-  fetch(FW + 'boards.json', { cache: 'no-cache' })
-    .then(function (r) {
-      if (!r.ok) throw new Error(r.status + ' ' + r.statusText);
-      return r.json();
-    })
-    .then(function (data) {
-      release = data;
-      var v = $('fw-version');
-      if (!data.boards || !data.boards.length) {
-        v.innerHTML = 'No release yet · <a href="' + REPO + '">build it from source</a>';
-        boardSelect.innerHTML = '<option value="">No firmware published yet</option>';
-        $('board-desc').innerHTML = 'The first release isn\'t out yet. Until then, build the firmware with ESP-IDF: see <a href="' + REPO + '/blob/main/docs/DEVELOPING.md">DEVELOPING.md</a>.';
-        return;
-      }
-      v.innerHTML = 'Firmware ' + esc(data.version) + ' · <a href="' + esc(data.release_url) + '">release notes</a>';
-      boardSelect.innerHTML = '<option value="">Choose a board…</option>' + data.boards.map(function (b) {
-        return '<option value="' + esc(b.board) + '">' + esc(b.board) + ' (' + esc(b.chip_family) + ')</option>';
-      }).join('');
-      boardSelect.disabled = false;
-      var last = store.get('flasher.board');
-      if (last && data.boards.some(function (b) { return b.board === last; })) boardSelect.value = last;
-      boardChanged();
-    })
-    .catch(function (err) {
-      $('fw-version').textContent = 'Couldn\'t load the firmware list (' + err.message + ')';
-      boardSelect.innerHTML = '<option value="">Not available</option>';
-    });
-
-  // The installer needs the port to itself: let go of it first.
-  installBtn.addEventListener('click', function () { if (S.link) disconnect(); });
+  initInstall({
+    fw: 'flasher/ghostlight-node/',
+    repo: GL_REPO,
+    storeKey: 'flasher.board',
+    noReleaseHtml: 'The first release isn\'t out yet. Until then, build the firmware with ESP-IDF: see <a href="' + GL_REPO + '/blob/main/docs/DEVELOPING.md">DEVELOPING.md</a>.',
+    ids: { version: 'fw-version', select: 'board', desc: 'board-desc', install: 'install', button: 'install-btn', ota: 'ota-link' }
+  });
 
   // ===================================================================
   // Serial link

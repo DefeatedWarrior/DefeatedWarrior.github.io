@@ -4,7 +4,7 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width, initial-scale=1">
 <title>Flasher · DefeatedWarrior</title>
-<meta name="description" content="Install Ghostlight Node firmware on an ESP32 or ESP32-S3 board from the browser, then set up its name, Wi-Fi and DMX ports over USB.">
+<meta name="description" content="Install firmware for DefeatedWarrior projects from the browser over USB: Ghostlight Node (then set up its name, Wi-Fi and DMX ports over USB), with the OpenTheatreComms Beltpack to follow.">
 <link rel="stylesheet" href="assets/style.css">
 <!-- ESP Web Tools, pinned. It installs the firmware; flasher/flasher.js does the rest. -->
 <script type="module" src="https://unpkg.com/esp-web-tools@10.4.0/dist/web/install-button.js?module"></script>
@@ -21,6 +21,13 @@
     padding: 14px 20px; margin: 0 0 6px; background: var(--panel); border: 1px solid var(--line); border-radius: var(--radius); }
   .fl-project strong { font: 700 1.15rem var(--serif); margin-right: 8px; }
 
+  .fl-projects { display: flex; flex-wrap: wrap; gap: 8px; margin: 0 0 16px; }
+  .fl-projects button { appearance: none; cursor: pointer; text-align: left; font: inherit; color: var(--muted);
+    background: var(--panel); border: 1px solid var(--line); border-radius: 12px; padding: 9px 16px; line-height: 1.3; }
+  .fl-projects button:hover { color: var(--text); border-color: rgba(242, 180, 65, 0.5); }
+  .fl-projects button[aria-selected="true"] { color: var(--text); background: var(--amber-dim); border-color: var(--amber); }
+  .fl-projects strong { display: block; font-size: 0.95rem; }
+  .fl-projects small { font-size: 0.78rem; }
   .fl-tabs { display: flex; gap: 4px; border-bottom: 1px solid var(--line); margin: 18px 0 22px; overflow-x: auto; }
   .fl-tabs button { appearance: none; background: none; border: 0; border-bottom: 2px solid transparent; margin-bottom: -1px;
     color: var(--muted); font: 600 0.95rem var(--sans); padding: 10px 14px 12px; cursor: pointer;
@@ -121,9 +128,16 @@
   <h1 class="pagetitle">Flasher</h1>
   <p class="lead">Install firmware on a board and set it up from this page, over USB. Use Chrome or Edge on a desktop or laptop; there is nothing else to install.</p>
 
+  <div class="fl-projects" role="tablist" aria-label="Projects">
+    <button type="button" role="tab" id="proj-tab-ghostlight-node" data-project="ghostlight-node" aria-controls="proj-ghostlight-node" aria-selected="true"><strong>Ghostlight Node</strong><small>Art-Net / sACN DMX node</small></button>
+    <button type="button" role="tab" id="proj-tab-beltpack" data-project="beltpack" aria-controls="proj-beltpack" aria-selected="false" tabindex="-1"><strong>OpenTheatreComms Beltpack</strong><small>Wireless intercom</small></button>
+  </div>
+
+  <!-- ===================== Ghostlight Node ===================== -->
+  <div id="proj-ghostlight-node" role="tabpanel" aria-labelledby="proj-tab-ghostlight-node">
   <div class="fl-project">
     <div><strong>Ghostlight Node</strong><span class="muted small">Art-Net and sACN to DMX512 / RDM, for ESP32 and ESP32-S3 boards</span></div>
-    <div class="muted small" id="fw-version">Loading the firmware list…</div>
+    <div class="muted small"><span id="fw-version">Loading the firmware list…</span> · <a href="https://github.com/DefeatedWarrior/ghostlight-node-firmware">source</a></div>
   </div>
 
   <div class="fl-tabs" role="tablist" aria-label="Flasher steps">
@@ -276,9 +290,27 @@
       <button type="button" class="btn small" id="log-clear">Clear</button>
     </details>
   </section>
+  </div>
+
+  <!-- ===================== OpenTheatreComms Beltpack =====================
+       No firmware yet. When it has releases: give it an install block like
+       the Ghostlight one (its own ids), firmware files under
+       flasher/opentheatrecomms-beltpack/, and an initInstall() call for it
+       at the end of flasher/flasher.js. -->
+  <div id="proj-beltpack" role="tabpanel" aria-labelledby="proj-tab-beltpack" hidden>
+    <div class="fl-project">
+      <div><strong>OpenTheatreComms Beltpack</strong><span class="muted small">Full-duplex wireless theatre intercom: ESP32-S3 with an LR2021 radio on 915–928 MHz</span></div>
+      <div class="muted small">No firmware yet</div>
+    </div>
+    <div class="fl-box" style="margin-top:22px">
+      <h3>Firmware is on the way</h3>
+      <p>The beltpack is a reference design that hasn't reached PCB layout yet, so there is no firmware to install. When it has releases, they will install from this tab the same way as the Ghostlight Node: pick the board, plug it in over USB, click Install.</p>
+      <div class="links"><a class="btn small primary" href="projects/opentheatrecomms-beltpack.html">About the beltpack</a><a class="btn small" href="https://github.com/DefeatedWarrior/OpenTheatreComms-Beltpack">Repository</a></div>
+    </div>
+  </div>
 </div>
 
 <script src="flasher/flasher.js"></script>
-<footer>Open-source hardware and firmware by <a href="https://github.com/DefeatedWarrior">DefeatedWarrior</a>. Installing uses <a href="https://esphome.github.io/esp-web-tools/">ESP Web Tools</a>. Firmware source: <a href="https://github.com/DefeatedWarrior/ghostlight-node-firmware">ghostlight-node-firmware</a>.</footer>
+<footer>Open-source hardware and firmware by <a href="https://github.com/DefeatedWarrior">DefeatedWarrior</a>. Installing uses <a href="https://esphome.github.io/esp-web-tools/">ESP Web Tools</a>.</footer>
 </body>
 </html>
