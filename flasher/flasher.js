@@ -459,7 +459,7 @@
       if (w.state === 'connecting' || w.state === 'getting_ip') parts.push('joining “' + esc(w.ssid) + '”…');
       else parts.push('not connected');
     }
-    if (n.primary !== 'wifi' && w.state === 'failed' && w.reason_text) {
+    if (n.primary !== 'wifi' && (w.state === 'failed' || w.state === 'off') && w.reason && w.reason_text) {
       parts.push('Wi-Fi failed: ' + esc(w.reason_text));
     }
     return parts.join('<br>');
@@ -885,6 +885,8 @@
     var until = Date.now() + 45000;
     var info = null;
     var failedSince = 0;
+    var tried = false;   // seen an attempt start, so a reason is about this network
+    var started = Date.now();
     while (Date.now() < until) {
       info = await infoNow(3000);
       if (info) {
@@ -897,11 +899,19 @@
         } else if (r.ssid) {
           if (w.state === 'connected' && w.ssid === r.ssid) { sw.done('Joined “' + w.ssid + '”: ' + (w.ip || n.ip_address)); return true; }
           if (n.primary === 'ethernet' && r.mode === 0) { sw.done('On Ethernet: ' + n.ip_address + ' (Wi-Fi is used when the cable is out)'); return true; }
+          var why = w.reason_text ? ': ' + w.reason_text : '';
+          if (w.state === 'connecting' || w.state === 'getting_ip') tried = true;
+          if (w.state === 'off' && w.reason && (tried || Date.now() - started > 10000)) {
+            // The node gave up on this network for now (it tries again later).
+            sw.fail('Couldn\'t join “' + r.ssid + '”' + why + '. Check the name and password, then save again.');
+            return false;
+          }
           if (w.state === 'failed') {
+            // Between retries within one attempt
             failedSince = failedSince || Date.now();
-            sw.text('Joining “' + r.ssid + '” failed' + (w.reason_text ? ': ' + w.reason_text : '') + '. Retrying…');
+            sw.text('Joining “' + r.ssid + '” failed' + why + '. Retrying…');
             if (Date.now() - failedSince > 15000) {
-              sw.fail('Couldn\'t join “' + r.ssid + '”' + (w.reason_text ? ': ' + w.reason_text : '') + '. Check the name and password, then save again.');
+              sw.fail('Couldn\'t join “' + r.ssid + '”' + why + '. Check the name and password, then save again.');
               return false;
             }
           } else {
