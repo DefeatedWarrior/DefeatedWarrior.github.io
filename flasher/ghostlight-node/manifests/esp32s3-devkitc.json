@@ -1,0 +1,17 @@
+{
+  "name": "Ghostlight Node firmware (esp32s3-devkitc)",
+  "version": "1.0.0",
+  "new_install_prompt_erase": false,
+  "new_install_improv_wait_time": 0,
+  "builds": [
+    {
+      "chipFamily": "ESP32-S3",
+      "parts": [
+        {
+          "path": "../firmware/ghostlight-node-esp32s3-devkitc-1.0.0-full.bin",
+          "offset": 0
+        }
+      ]
+    }
+  ]
+}
