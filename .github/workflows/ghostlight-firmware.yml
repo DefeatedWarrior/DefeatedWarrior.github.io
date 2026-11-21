@@ -1,0 +1,78 @@
+# Copies the latest Ghostlight Node firmware release onto the flasher page
+# (flasher.html). Browsers can't load GitHub release downloads from another
+# site, so the images are kept here, next to the page.
+#
+# Runs every six hours, and by hand (Actions > Ghostlight Node firmware >
+# Run workflow), optionally for a given tag. It does nothing when the page
+# already has that release.
+name: Ghostlight Node firmware
+
+on:
+  schedule:
+    - cron: '23 */6 * * *'
+  workflow_dispatch:
+    inputs:
+      tag:
+        description: 'Release tag (empty = the latest release)'
+        required: false
+
+permissions:
+  contents: write
+  pages: write
+
+concurrency:
+  group: ghostlight-firmware
+  cancel-in-progress: false
+
+env:
+  FIRMWARE_REPO: DefeatedWarrior/ghostlight-node-firmware
+
+jobs:
+  sync:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v7
+
+      - name: Which release
+        id: rel
+        env:
+          GH_TOKEN: ${{ github.token }}
+          WANT: ${{ inputs.tag }}
+        run: |
+          tag="$WANT"
+          if [ -z "$tag" ]; then
+            tag=$(gh release view --repo "$FIRMWARE_REPO" --json tagName -q .tagName 2>/dev/null || true)
+          fi
+          if [ -z "$tag" ]; then
+            echo "No release published yet"
+            exit 0
+          fi
+          have=$(python3 -c "import json; print(json.load(open('flasher/ghostlight-node/boards.json')).get('tag') or '')")
+          echo "Latest: $tag, on the page: ${have:-none}"
+          if [ "$tag" != "$have" ]; then echo "tag=$tag" >> "$GITHUB_OUTPUT"; fi
+
+      - name: Download and update the flasher
+        if: steps.rel.outputs.tag != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.rel.outputs.tag }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/release"
+          gh release download "$TAG" --repo "$FIRMWARE_REPO" --dir "$RUNNER_TEMP/release" \
+            --pattern 'flasher.json' --pattern '*-full.bin'
+          python3 flasher/sync_ghostlight_firmware.py "$RUNNER_TEMP/release" --tag "$TAG"
+
+      - name: Commit
+        if: steps.rel.outputs.tag != ''
+        env:
+          GH_TOKEN: ${{ github.token }}
+          TAG: ${{ steps.rel.outputs.tag }}
+        run: |
+          git config user.name "github-actions[bot]"
+          git config user.email "41898282+github-actions[bot]@users.noreply.github.com"
+          git add -A flasher/ghostlight-node
+          git diff --cached --quiet && { echo "Nothing changed"; exit 0; }
+          git commit -m "Flasher: Ghostlight Node firmware $TAG"
+          git push
+          # The branch build normally starts on its own; ask for one anyway
+          gh api -X POST "repos/${{ github.repository }}/pages/builds" > /dev/null || true

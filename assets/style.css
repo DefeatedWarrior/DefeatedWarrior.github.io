@@ -154,6 +154,11 @@ figcaption { color: var(--muted); font-size: 0.85rem; margin-top: 8px; }
 }
 .search input:focus { width: 230px; outline: none; border-color: var(--amber); }
 @media (max-width: 720px) { .search { display: none; } nav a { margin-left: 14px; } }
+@media (max-width: 560px) {
+  .site-header .in { flex-wrap: wrap; row-gap: 2px; padding: 10px 16px; }
+  .site-header nav { width: 100%; display: flex; flex-wrap: wrap; gap: 0 18px; }
+  .site-header nav a { margin-left: 0; }
+}
 .bigsearch { display: flex; gap: 10px; margin: 18px 0 28px; max-width: 640px; }
 .bigsearch input { flex: 1; width: auto; padding: 12px 18px; font-size: 1rem; }
 .bigsearch input:focus { outline: none; border-color: var(--amber); }
