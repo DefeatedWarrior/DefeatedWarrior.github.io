@@ -226,10 +226,12 @@
         <section>
           <h3>Web UI password</h3>
           <p class="muted small" id="pw-help">The password for signing in to the node's web UI.</p>
-          <div class="fields">
+          <div class="fields" id="pw-fields">
             <div class="field"><label for="f-pw">Admin password</label><input type="password" id="f-pw" maxlength="63" autocomplete="new-password"></div>
             <div class="field"><label for="f-pw2">Repeat it</label><input type="password" id="f-pw2" maxlength="63" autocomplete="new-password"></div>
           </div>
+          <label class="check" id="nopw-box" style="margin-top:14px" hidden><input type="checkbox" id="f-nopw">
+            <span><strong>No password</strong><small>The web UI doesn't ask anyone to sign in: whoever can reach the node on the network can change its settings.</small></span></label>
         </section>
 
         <section>
@@ -257,8 +259,10 @@
           <p class="muted small">The node opens it when it can't join a network, so you can always reach it. With "Own network only" it is the only way in.</p>
           <div class="fields">
             <div class="field"><label for="f-apssid">Network name</label><input type="text" id="f-apssid" maxlength="31" spellcheck="false"></div>
-            <div class="field"><label for="f-appw">Password</label><input type="password" id="f-appw" maxlength="63" autocomplete="new-password"><small id="appw-help"></small></div>
+            <div class="field" id="appw-field"><label for="f-appw">Password</label><input type="password" id="f-appw" maxlength="63" autocomplete="new-password"><small id="appw-help"></small></div>
           </div>
+          <label class="check" id="apopen-box" style="margin-top:14px" hidden><input type="checkbox" id="f-apopen">
+            <span><strong>Open network (no password)</strong><small>Anyone nearby can join it and reach the node.</small></span></label>
         </section>
 
         <section>

@@ -541,6 +541,8 @@
       ['Firmware', esc(i.firmware_version) + (i.tester && i.tester.enabled ? ' · <span class="badge proto">DMX tester</span>' : '')],
       ['Network', netSummary(i)],
       ['Web UI', links.length ? links.join('<br>') : '<span class="muted">once it is on a network</span>'],
+      ['Sign-in', firstSetup() ? '<span class="muted">not set up yet</span>'
+        : loginOff() ? 'off: no password' : 'admin password'],
       ['MAC address', '<code>' + esc(i.mac) + '</code>']
     ];
     $('facts').innerHTML = rows.map(function (r) { return '<div><dt>' + r[0] + '</dt><dd>' + r[1] + '</dd></div>'; }).join('');
@@ -561,7 +563,36 @@
   }
   function has(f) { return !!(S.info && S.info.features && S.info.features[f]); }
   function profiles() { return (S.config.network && S.config.network.wifi_profiles) || []; }
-  function firstSetup() { return S.info && !S.info.password_set; }
+  // Firmware 1.1+ reports setup_done / login_required and takes "no
+  // password" choices; 1.0 only knows password_set.
+  function noPwOk() { return !!S.info && typeof S.info.setup_done === 'boolean'; }
+  function firstSetup() { return !!S.info && (noPwOk() ? !S.info.setup_done : !S.info.password_set); }
+  function loginOff() { return noPwOk() && S.info.setup_done && !S.info.login_required; }
+  function apWasOpen() { return !!(S.config && S.config.network && S.config.network.ap_open); }
+
+  // Hide the password fields that a "no password" box replaces.
+  function pwChoices() {
+    var nopw = noPwOk() && $('f-nopw').checked;
+    var open = noPwOk() && $('f-apopen').checked;
+    $('nopw-box').hidden = $('apopen-box').hidden = !noPwOk();
+    $('pw-fields').hidden = nopw;
+    $('appw-field').hidden = open;
+    $('pw-help').textContent = nopw
+      ? (loginOff() ? 'Sign-in is off now. Untick to choose a password and turn it on.'
+                    : 'You can set a password later, here or in the node\'s web UI.')
+      : firstSetup()
+        ? 'This node has no admin password yet. Choose one (8 to 63 characters); you\'ll sign in to the web UI with it.'
+        : loginOff()
+          ? 'Sign-in is off now. Choose a password (8 to 63 characters) to turn it on.'
+          : 'Leave empty to keep the current password. Typing a new one replaces it, also when the old one is forgotten.';
+    $('appw-help').textContent = apWasOpen()
+      ? 'The network is open now. Enter a password (8 to 63 characters) to close it.'
+      : firstSetup()
+        ? 'Change it from the default 12345678: 8 to 63 characters.'
+        : 'Leave empty to keep the current password.';
+  }
+  $('f-nopw').addEventListener('change', pwChoices);
+  $('f-apopen').addEventListener('change', pwChoices);
 
   function modeList() {
     var l = [];
@@ -586,9 +617,7 @@
     $('f-long').value = ni.long_name || '';
 
     $('f-pw').value = $('f-pw2').value = '';
-    $('pw-help').textContent = firstSetup()
-      ? 'This node has no admin password yet. Choose one (8 to 63 characters); you\'ll sign in to the web UI with it.'
-      : 'Leave empty to keep the current password. Typing a new one replaces it, also when the old one is forgotten.';
+    $('f-nopw').checked = loginOff();
 
     $('f-mode').innerHTML = options(modeList(), net.mode || 0);
     if (!modeList().some(function (m) { return m[0] === net.mode; })) $('f-mode').value = '0';
@@ -601,9 +630,8 @@
 
     $('f-apssid').value = net.ap_ssid || '';
     $('f-appw').value = '';
-    $('appw-help').textContent = firstSetup()
-      ? 'Change it from the default 12345678: 8 to 63 characters.'
-      : 'Leave empty to keep the current password.';
+    $('f-apopen').checked = apWasOpen();
+    pwChoices();
 
     var ports = S.info.ports || 0;
     var html = '';
@@ -742,12 +770,15 @@
       doc.node_info = { short_name: sn, long_name: ln };
     }
 
-    // Admin password
-    var pw = $('f-pw').value;
-    if (pw || $('f-pw2').value || firstSetup()) {
-      if (pw.length < 8 || pw.length > 63) errs.push(bad('f-pw', firstSetup() ? 'Required: 8 to 63 characters.' : '8 to 63 characters.'));
+    // Admin password, or none
+    var noPw = noPwOk() && $('f-nopw').checked;
+    var pw = noPw ? '' : $('f-pw').value;
+    var pwNeeded = firstSetup() || loginOff();
+    if (!noPw && (pw || $('f-pw2').value || pwNeeded)) {
+      if (pw.length < 8 || pw.length > 63) errs.push(bad('f-pw', pwNeeded ? 'Required: 8 to 63 characters.' : '8 to 63 characters.'));
       else if (pw !== $('f-pw2').value) errs.push(bad('f-pw2', 'The two passwords differ.'));
     }
+    var turnOff = noPw && !loginOff();   // first setup, or sign-in is on now
 
     // Network
     var oldNet = c.network || {};
@@ -786,9 +817,13 @@
     if (!apssid) errs.push(bad('f-apssid', 'Give the network a name.'));
     else if (utf8len(apssid) > 31) errs.push(bad('f-apssid', 'At most 31 bytes.'));
     else if (apssid !== (oldNet.ap_ssid || '')) net.ap_ssid = apssid;
-    var appw = $('f-appw').value;
-    if (appw || firstSetup()) {
-      if (appw.length < 8 || appw.length > 63) errs.push(bad('f-appw', firstSetup() ? 'Required: 8 to 63 characters.' : '8 to 63 characters.'));
+    var apOpen = noPwOk() && $('f-apopen').checked;
+    var appw = apOpen ? '' : $('f-appw').value;
+    var appwNeeded = firstSetup() || apWasOpen();
+    if (apOpen) {
+      if (!apWasOpen()) net.ap_password = '';   // an open network
+    } else if (appw || appwNeeded) {
+      if (appw.length < 8 || appw.length > 63) errs.push(bad('f-appw', appwNeeded ? 'Required: 8 to 63 characters.' : '8 to 63 characters.'));
       else if (appw === '12345678') errs.push(bad('f-appw', 'Pick something other than the default.'));
       else net.ap_password = appw;
     }
@@ -816,7 +851,7 @@
       if (t !== !!(c.tester && c.tester.enabled)) doc.tester = { enabled: t };
     }
 
-    return { errs: errs, doc: doc, password: pw || null, ssid: wifiOn && ssid ? ssid : null, mode: mode };
+    return { errs: errs, doc: doc, password: pw || null, noPassword: turnOff, ssid: wifiOn && ssid ? ssid : null, mode: mode };
   }
 
   // ----- saving -----
@@ -834,7 +869,7 @@
 
   function setFormDisabled(off) {
     document.querySelectorAll('#setup-form input, #setup-form select, #setup-form button').forEach(function (el) { el.disabled = off; });
-    if (!off) modeChanged();
+    if (!off) { modeChanged(); pwChoices(); }
   }
 
   async function infoNow(ms) {
@@ -857,7 +892,7 @@
       $(r.errs[0]).focus();
       return;
     }
-    if (!Object.keys(r.doc).length && !r.password) {
+    if (!Object.keys(r.doc).length && !r.password && !r.noPassword) {
       $('save-note').textContent = 'Nothing changed.';
       return;
     }
@@ -890,9 +925,21 @@
         try {
           await S.link.send('password', { password: r.password }, 8000);
           sp.done('Admin password set');
-          S.info.password_set = true;
+          S.info.password_set = S.info.setup_done = S.info.login_required = true;
         } catch (e) {
           sp.fail('Admin password not set: ' + e.message);
+          throw e;
+        }
+      }
+      if (r.noPassword) {
+        var sn = progress('Turning off the web UI password');
+        try {
+          await S.link.send('password', { no_password: true }, 8000);
+          sn.done('Web UI sign-in is off');
+          S.info.password_set = S.info.login_required = false;
+          S.info.setup_done = true;
+        } catch (e) {
+          sn.fail('Sign-in not turned off: ' + e.message);
           throw e;
         }
       }
