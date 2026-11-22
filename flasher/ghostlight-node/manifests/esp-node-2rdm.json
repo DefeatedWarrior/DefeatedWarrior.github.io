@@ -1,6 +1,6 @@
 {
   "name": "Ghostlight Node firmware (esp-node-2rdm)",
-  "version": "1.1.0",
+  "version": "1.2.0",
   "new_install_prompt_erase": false,
   "new_install_improv_wait_time": 0,
   "builds": [
@@ -8,7 +8,7 @@
       "chipFamily": "ESP32-S3",
       "parts": [
         {
-          "path": "../firmware/ghostlight-node-esp-node-2rdm-1.1.0-full.bin",
+          "path": "../firmware/ghostlight-node-esp-node-2rdm-1.2.0-full.bin",
           "offset": 0
         }
       ]
