@@ -1,6 +1,6 @@
 {
   "name": "Ghostlight Node firmware (ghostlight-rev1)",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "new_install_prompt_erase": false,
   "new_install_improv_wait_time": 0,
   "builds": [
@@ -8,7 +8,7 @@
       "chipFamily": "ESP32-S3",
       "parts": [
         {
-          "path": "../firmware/ghostlight-node-ghostlight-rev1-1.2.0-full.bin",
+          "path": "../firmware/ghostlight-node-ghostlight-rev1-1.2.1-full.bin",
           "offset": 0
         }
       ]

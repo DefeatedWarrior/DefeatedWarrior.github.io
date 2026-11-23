@@ -1,35 +1,35 @@
 {
-  "tag": "v1.2.0",
-  "version": "1.2.0",
-  "release_url": "https://github.com/DefeatedWarrior/ghostlight-node-firmware/releases/tag/v1.2.0",
+  "tag": "v1.2.1",
+  "version": "1.2.1",
+  "release_url": "https://github.com/DefeatedWarrior/ghostlight-node-firmware/releases/tag/v1.2.1",
   "boards": [
     {
       "board": "esp-node-2rdm",
       "chip_family": "ESP32-S3",
       "description": "ESP-NODE-2RDM prototype: ESP32-S3 N16R8 dev board",
       "manifest": "manifests/esp-node-2rdm.json",
-      "ota": "ghostlight-node-esp-node-2rdm-1.2.0-ota.bin"
+      "ota": "ghostlight-node-esp-node-2rdm-1.2.1-ota.bin"
     },
     {
       "board": "esp32-devkitc",
       "chip_family": "ESP32",
       "description": "Original ESP32: DevKitC with a WROOM-32 (4 MB flash, no PSRAM)",
       "manifest": "manifests/esp32-devkitc.json",
-      "ota": "ghostlight-node-esp32-devkitc-1.2.0-ota.bin"
+      "ota": "ghostlight-node-esp32-devkitc-1.2.1-ota.bin"
     },
     {
       "board": "esp32s3-devkitc",
       "chip_family": "ESP32-S3",
       "description": "ESP32-S3 DevKitC-1 with 2 RS-485 transceivers, Wi-Fi only (no W5500).",
       "manifest": "manifests/esp32s3-devkitc.json",
-      "ota": "ghostlight-node-esp32s3-devkitc-1.2.0-ota.bin"
+      "ota": "ghostlight-node-esp32s3-devkitc-1.2.1-ota.bin"
     },
     {
       "board": "ghostlight-rev1",
       "chip_family": "ESP32-S3",
       "description": "Ghostlight Node rev1: ESP32-S3-WROOM-1-N8 (8 MB quad flash, no PSRAM)",
       "manifest": "manifests/ghostlight-rev1.json",
-      "ota": "ghostlight-node-ghostlight-rev1-1.2.0-ota.bin"
+      "ota": "ghostlight-node-ghostlight-rev1-1.2.1-ota.bin"
     }
   ]
 }
